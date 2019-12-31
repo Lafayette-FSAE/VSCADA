@@ -1,7 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-
+/*
+* the UI for the system
+*/
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -9,12 +11,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     //initialize objects
-    central = new QWidget();
-    mainLayout = new QVBoxLayout();
-    conf = new Config();
+    central = new QWidget();//first tab on the SCADA
+    mainLayout = new QVBoxLayout();// the layout for the tab
+    conf = new Config();// this contains everything else the software does
     timer = new QTimer();
-    dbtool=new DBTable("SCADA.db");
-    dbtool->create_sec("logs","id char not null,log string not null");
+    dbtool=new DBTable("SCADA.db");//data base for the system
+    dbtool->create_sec("logs","id char not null,log string not null");//logs table
     maxSensorRow = 0;
 
     mainLayout->setSizeConstraint(QLayout::SetFixedSize);
@@ -58,7 +60,7 @@ MainWindow::MainWindow(QWidget *parent) :
     logMessage(startMessage);
     //****************************************************//
 
-    // create tabs
+    // adds tabs
     QScrollArea *scrollArea = new QScrollArea();
     tabs = new QTabWidget;
     tabs->setTabsClosable(true);
@@ -92,7 +94,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     this->setCentralWidget(scrollArea);
 
-    update();
+    update();// makes the central tab
 
     // connect signals to slots
     for (auto const& x : conf->groupMap){
@@ -136,6 +138,10 @@ MainWindow::~MainWindow(){
     delete ui;
 }
 
+/*
+* So this makes the displays that shows all the data the system collects
+* any changes made here change the dino room display first tab
+*/
 void MainWindow::update(){
 
     QRect rec = QApplication::desktop()->screenGeometry();
@@ -490,6 +496,9 @@ void MainWindow::update(){
     mainLayout->addWidget(clock, Qt::AlignCenter);
 }
 
+/*
+*the clock seen on the display
+*/
 void MainWindow::updateClock(){
     int time = conf->dataCtrl->systemTimer->elapsed();
     time = time/1000;
@@ -509,6 +518,9 @@ void MainWindow::updateClock(){
     clock->setText(QString::fromStdString(updatedTime));
 }
 
+/*
+* still trying to figure out this slider ones purposes
+*/
 void MainWindow::sliderValChanged(){
     QObject* obj = sender();
     for (uint i = 0; i < controlSliders.size(); i++){
@@ -519,6 +531,9 @@ void MainWindow::sliderValChanged(){
     }
 }
 
+/*
+*
+*/
 void MainWindow::sliderValChanged(int val){
     if (val == QAbstractSlider::SliderPageStepAdd || val == QAbstractSlider::SliderPageStepSub){
         QObject* obj = sender();
@@ -532,6 +547,10 @@ void MainWindow::sliderValChanged(int val){
     }
 }
 
+/*
+* there are a few of the ones below that are unused but have to be edited
+* out in other moudules
+*/
 void MainWindow::ctrlButtonPressed(){
     QObject* obj = sender();
     for (uint i = 0; i < controlButtons.size(); i++){
@@ -581,18 +600,24 @@ void MainWindow::deactivateStateMW(system_state * prevState){
         }
     }
 }
-
+/*
+* changes the text in a the specified textbox
+*/
 void MainWindow::drawEdit(QLineEdit * edit,QString dataDisplay ){
     edit= new QLineEdit();
     edit->setText(dataDisplay);
     edit->setMinimumWidth(unitWidth);
     edit->setStyleSheet("font:24pt;");
 }
-
+/*
+* slot used to log all sub module messages
+*/
 void MainWindow::receiveMsg(string msg){
     logMessage(QString::fromStdString(msg));
 }
-
+/*
+* used to show all sensors under group when tag is pushed
+*/
 void MainWindow::detailButtonPushed(){
     QObject* obj = sender();
     for (auto const &x: conf->groupMap){
@@ -600,10 +625,15 @@ void MainWindow::detailButtonPushed(){
     }
 }
 
+/*
+* slot used to log all sub module messages
+*yes its the same as the one above
+*/
 void MainWindow::receiveErrMsg(string msg){
     QString str = QString::fromStdString(msg);
     logMessage(QString::fromStdString(msg));
 }
+
 
 void MainWindow::updateHealth(){
     for (auto const &x: conf->groupMap){
@@ -635,7 +665,9 @@ void MainWindow::updateFSM_MW(statemachine * currFSM){
         }
     }
 }
-
+/*
+* logs messages and the time it was recieved
+*/
 void MainWindow::logMessage(QString eMessage){
     if (message->count() >= 500) message->takeItem(0);
     string time = conf->dataCtrl->getProgramTime();
@@ -646,6 +678,9 @@ void MainWindow::logMessage(QString eMessage){
     dbtool->add_row_sec("logs","id,log",std::to_string(message->count())+",\" " +msg +" \"");
 }
 
+/*
+* opens a new tab for specified groups
+*/
 void MainWindow::openDetailWindow(Group * grp){
     detailWindow= new detailPage();
     detailWindow->setConfObject(conf);
@@ -654,6 +689,10 @@ void MainWindow::openDetailWindow(Group * grp){
     tabs->setCurrentIndex(tabs->count() - 1);
 }
 
+/*
+* slot that closes tab on user input if its the first
+* tab closes program
+*/
 void MainWindow::closeTab(int tabId){
     if ((tabId != 0) && (tabId != 1)) tabs->removeTab(tabId);
     else if (tabId == 0) shutdownSystem();
@@ -727,6 +766,9 @@ int MainWindow::active_dialog(string msg){
     }
 }
 
+/*
+* shutdown the system after prompting the user
+*/
 void MainWindow::shutdownSystem(){
     int confirmation = active_dialog("Are you sure you want to exit?");
     if (confirmation == QDialog::Accepted){
@@ -765,6 +807,10 @@ void MainWindow::checkTimeout(){
     }
 }
 
+/*
+* changes the color of sensors
+*used to show overheating or major cooling
+*/
 void MainWindow::changeEditColor(string color, meta * sensor){
     if(color.compare("red") == 0){
         edits[sensor->sensorIndex]->setStyleSheet("color: #FF0000; font:"+editFont+"pt;");

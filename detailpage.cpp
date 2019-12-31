@@ -29,7 +29,9 @@ detailPage::~detailPage()
 {
     delete ui;
 }
-
+/*
+*
+*/
 void detailPage::update(){
     vector<meta *> allSensors = currentGroup->get_metadata();
 
@@ -126,12 +128,18 @@ void detailPage::update(){
     mainLayout->addWidget(hBorder1, Qt::AlignCenter);
 }
 
+/*
+*
+*/
 void detailPage::setConfObject(Config * config){
     this->conf = config;
     connect(conf->dataCtrl, SIGNAL(updateDisplay(meta *)), this, SLOT(updateEdits(meta *)));
     connect(conf->dataCtrl, SIGNAL(updateEditColor(string, meta *)), this, SLOT(changeEditColor(string, meta *)));
 }
 
+/*
+*
+*/
 void detailPage::setCurrentSystem(Group * subsystem){
     currentGroup = subsystem;
     update();
@@ -171,6 +179,9 @@ void detailPage::checkTimeout(){
     }
 }
 
+/*
+*
+*/
 void detailPage::changeEditColor(string color, meta * sensor){
     vector<meta*> allSensors = currentGroup->get_metadata();
     for(uint i = 0; i < edits.size(); i++){

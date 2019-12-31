@@ -48,8 +48,9 @@ DataControl::DataControl(gpio_interface * gpio, canbus_interface * can, usb7402_
     sessionNumber = 10;
     cout << "Record Index: " << sessionNumber << endl;
     startSystemTimer();
-
-    //signal-slot connections
+    //*****************************************//
+    //********signal-slot connections*********//
+    //***************************************//
     map<string, Group *>::iterator it;
     canSyncs= cSyncs;
     for (uint i = 0; i < canSyncs.size(); i++){
@@ -91,6 +92,9 @@ void DataControl::startSystemTimer(){
     systemTimer->start();
 }
 
+/*
+* Get time since programe started in seconds
+*/
 string DataControl::getProgramTime(){
     int timeElapsed = systemTimer->elapsed();
     double time = static_cast<double>(timeElapsed)/1000;
@@ -101,11 +105,17 @@ string DataControl::getProgramTime(){
     return streamObj.str();
 }
 
+/*
+* self explainatory
+*/
 void DataControl::feedWatchdog(){
     cout << "Feeding watchDog..." << endl;
     system("echo 0 > watchdog.txt");
 }
 
+/*
+* Sends can message when signal from sender is emited
+*/
 void DataControl::canSyncSlot(){
     QObject * tmr = sender();
     for (uint i=0; i< canSyncTimers.size(); i++){
@@ -116,6 +126,9 @@ void DataControl::canSyncSlot(){
     }
 }
 
+/*
+* error control method that is not used anymore
+*/
 void DataControl::receive_sensor_data(meta * sensor){
     try{
         receiveData(sensor);
@@ -183,20 +196,19 @@ void DataControl::receive_can_data(uint32_t addr, uint64_t data){
               QCoreApplication::processEvents();
               meta * currSensor = specSensors->at(i);
               double val;
+              //compares sensor auxillary address to first 4 bytes of received packet
+              // if true sets sensor value
               if(currSensor->motor && static_cast<uint16_t>(data>>40)==currSensor->auxAddress){
                   val=static_cast<uint8_t>(data>>currSensor->offset);
-                  if(int(val)==int(currSensor->val))
-                      print=true;
+                  //if(int(val)==int(currSensor->val))
                 currSensor->val = val;
               }
-              else if(!currSensor->motor){
+              else if(!currSensor->motor){//tsi packets that need to be edited
                   val=static_cast<int>(isolateData64(currSensor->auxAddress,currSensor->offset,data));
-                if(int(val)==int(currSensor->val))
-                    print=true;
+                //if(int(val)==int(currSensor->val))
                 currSensor->val = val;
               }
               receiveData(currSensor);
-              print=false;
               QCoreApplication::processEvents();
           }
         }
@@ -244,7 +256,6 @@ void DataControl::receiveData(meta * currSensor){
     calibrateData(currSensor);
     checkThresholds(currSensor);
     emit updateDisplay(currSensor);
-
 }
 /**
  * @brief DataControl::logData - records specified sensor data in the respective database
@@ -349,6 +360,7 @@ int DataControl::change_system_state(system_state * newState){
     currState = newState->name;
     //display change on back and front screen
     emit activateState(newState);
+    pushMessage(rowString);
     return 1;
     } catch(...){
         return 0;
@@ -363,10 +375,11 @@ void DataControl::deactivateLog(system_state *prevstate){
     prevstate->active = false;
     string colString = "time,state,message";
     string rowString = "'" + getProgramTime() + "','" + prevstate->name + "','Exit State'";
+    pushMessage(rowString);
 }
 
 /**
- * @brief DataControl::executeRxn executes specified response
+ * @brief DataControl::executeRxn executes response of specified index
  * @param responseIndex : response identifier
  */
 void DataControl::executeRxn(int responseIndex){
@@ -426,7 +439,7 @@ vector<controlSpec *> DataControl::get_control_specs(){
     return controlSpecs;
 }
 
-/**
+/** not used anymore
  * @brief DataControl::saveSession : saves database fiel in the savedsessions folder
  * @param name : name of saved file
  */
@@ -457,7 +470,7 @@ string DataControl::get_curr_date(){
     return buf;
 }
 
-/**
+/** something stupid
  * @brief Function to remove all spaces from a given string
  */
 string DataControl::removeSpaces(string &str)

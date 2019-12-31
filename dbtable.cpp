@@ -5,24 +5,32 @@ DBTable::DBTable(std::string name){
     db_location = "./";
     Open_database();
 }
+
 DBTable::DBTable(std::string location, std::string name){
     db_name = name;
     db_location =location;
     Open_database();
 
 }
+
 //close the database
 DBTable::~DBTable(){
     sqlite3_close(database);
     database=nullptr;
 }
-string DBTable::section="";
+
+string DBTable::section="";//section number otained from db_table
+
 //opens the database
 void DBTable::Open_database(){
     std::string full_name = db_location + "/" + db_name;
     sqlite3_open(full_name.c_str(), &database);
 }
 
+/*
+* creates a table of name table with parameters columns if error returns sqlite
+* sqlite not okay
+*/
 int DBTable::create(string table,string column) {
     if(column==""||table=="")
         return -1;
@@ -35,6 +43,10 @@ int DBTable::create(string table,string column) {
     return returnCode;
 }
 
+/*
+* creates a table, with a char for the section its excuted under, with name
+* specified by table and variables columns
+*/
 int DBTable::create_sec(string table,string column) {
     if(column==""||table=="")
         return -1;
@@ -47,16 +59,23 @@ int DBTable::create_sec(string table,string column) {
     return returnCode;
 }
 
-bool DBTable::add_row(std::string table, std::string colums,std::string rows) {
+/*
+* adds a row to SQLtable
+*/
+bool DBTable::add_row(std::string table, std::string columns,std::string rows) {
     int   returnCode = 0;
     char *ErrMsg;
     std::string add_row;
-    add_row  = "INSERT INTO " + table +"("+ colums +")"+ " VALUES ("+rows +");";
+    add_row  = "INSERT INTO " + table +"("+ columns +")"+ " VALUES ("+rows +");";
     //cout<<add_row<<endl;
     returnCode = sqlite3_exec(database,add_row.c_str(),nullptr,this,&ErrMsg);
     return returnCode;
 }
-bool DBTable::add_row_sec(std::string table, std::string colums,std::string rows) {
+
+/*
+* adds a row to SQLtable that includes sections
+*/
+bool DBTable::add_row_sec(std::string table, std::string columns,std::string rows) {
     int   returnCode = 0;
     char *ErrMsg;
     std::string add_row;
@@ -66,12 +85,15 @@ bool DBTable::add_row_sec(std::string table, std::string colums,std::string rows
     else{
         sec=stoi(section)+1;
     }
-    add_row  = "INSERT INTO " + table +"(section,"+ colums +")"+ " VALUES ('"+to_string(sec)+"',"+rows +");";
+    add_row  = "INSERT INTO " + table +"(section,"+ columns +")"+ " VALUES ('"+to_string(sec)+"',"+rows +");";
     //cout<<add_row<<endl;
     returnCode = sqlite3_exec(database,add_row.c_str(),nullptr,this,&ErrMsg);
     return returnCode;
 }
 
+/*
+* unused at the moment
+*/
 bool DBTable::select_all() {
     int   returnCode = 0;
     char *ErrMsg;
@@ -80,6 +102,9 @@ bool DBTable::select_all() {
     return returnCode;
 }
 
+/*
+* initializes the variable section
+*/
 int DBTable::SecNum(string table){
     int   returnCode = 0;
     char *ErrMsg;
@@ -88,6 +113,9 @@ int DBTable::SecNum(string table){
     return returnCode;
 }
 
+/*
+* determines the current section
+*/
 int DBTable::SecNum_callback(void *unused, int count, char **data, char **columns)
 {
     int idx;

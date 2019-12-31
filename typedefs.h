@@ -26,44 +26,53 @@
 
 #define DB_BUF_SIZE 100
 #define CAN_FRAME_LIMIT 20
-
+/* Used when calculating sensors using Polynomials*/
 typedef struct{
     int exponent;
     double coefficient;
 }poly;
 
+/* The base type for all sensors. has multiple variables to cover
+*  different types of sensors which is very ineffective. Would
+*  would benifit from parenting in the future
+*/
 typedef struct{
-    int motor;
-    double val;
-    uint offset;
+    uint32_t primAddress;
+    uint auxAddress;// used to locate which sensor is data is for
+    uint offset;// used to tell which bits values come from
+
     int gpioPin;
-    int checkRate;
-    double calVal;
-    int maxRxnCode;
+    int motor;//used to differ tsi and Controller pckt unneeded with standardization
+    int checkRate;//sensor checkrate
+
+    int maxRxnCode;//response code is used but may not be needed for sesnsors
     int minRxnCode;
-    uint auxAddress;
-    int i2cAddress;
+    int normRxnCode;
+
+    int i2cAddress;// i^2c controls
     std::vector<uint32_t> i2cConfigs;
     uint8_t i2cReadPointer;
     int i2cReadDelay;
     int i2cDataField;
     int usbChannel;
-    double minimum;
+    double minimum;//min and max sensor values
     double maximum;
     double calConst;
     int sensorIndex;
-    int normRxnCode;
-    int trigger;
+    int state;// may not be used
+    int trigger;// value change in sensor that signifies it needs to be stored
     double trigval;
     int reciprocol;	// add rec flag
-    uint32_t primAddress;
-    uint8_t precision;
+    uint8_t precision;// decimal point
     double calMultiplier;
-    int state;
+    double calVal;// value sensor holds after calculating
+    double val; // value of sensor before recalulation
     std::vector<poly> calPolynomial;
     std::vector<std::string> groups;
     std::string unit;
     std::string sensorName;
+
+    //kinda pointless method though it is in use
     void updateVal(int newVal)
     {
         val = newVal;
@@ -72,8 +81,8 @@ typedef struct{
     void calData(){
         calVal = static_cast<double>(val)*calMultiplier + calConst;
     }
-	
-	// add method
+
+	// added method by tony used in tsi cal
 	void calRec(){
 		if (reciprocol == 1) {
 			if (calVal != 0) {
@@ -85,7 +94,9 @@ typedef struct{
 		}
     }
 }meta;
-
+/*
+* this is in use but it may not be needed(can't remember why)
+*/
 typedef struct{
     uint offset;
     int gpiopin;
@@ -105,6 +116,9 @@ typedef struct{
     double multiplier;
 }controlSpec;
 
+/*
+* how scada reacts to different situations
+*/
 typedef struct{
     int defVal;
     uint offset;
@@ -119,6 +133,9 @@ typedef struct{
     int displayTarget;
 }response;
 
+/*
+* pretty self explainitory would benifit from being changed
+*/
 typedef struct{
     int value;
     uint offset;
@@ -128,13 +145,10 @@ typedef struct{
     std::string name;
 }system_state;
 
-//typedef struct{
-//    std::string name;
-//    uint auxAddress;
-//    uint offset;
-//    int value;
-//}condition;
 
+/*
+* the system's statemachine
+*/
 typedef struct{
     uint offset;
     uint auxAddress;
@@ -144,6 +158,9 @@ typedef struct{
     //std::vector<condition *> conditions;
 }statemachine;
 
+/*
+* Used to send can messages written in the config file
+*/
 typedef struct{
     int address;
     uint64_t data;
@@ -152,18 +169,19 @@ typedef struct{
     int rate_ms;
 }canItem;
 
-typedef struct{
-    int pin;
-    int value;
-    int mode;
-    int rate_ms;
-}gpioItem;
+// a bunch of things i commented out as they were unused or unneeded
+//typedef struct{
+//    int pin;
+//    int value;
+//    int mode;
+//    int rate_ms;
+//}gpioItem;
 
-typedef struct{
-    int address;
-    int data;
-    int rate_ms;
-}i2cItem;
+//typedef struct{
+//    int address;
+//    int data;
+//    int rate_ms;
+//}i2cItem;
 
 //typedef struct{
 //    std::vector<canItem> bootCanCmds;
@@ -186,4 +204,10 @@ typedef struct{
 //    void * timer;
 //} recordwindow;
 
+//typedef struct{
+//    std::string name;
+//    uint auxAddress;
+//    uint offset;
+//    int value;
+//}condition;
 #endif // TYPEDEFS_H

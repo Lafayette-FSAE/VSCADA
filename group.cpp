@@ -24,8 +24,9 @@ Group::~Group(){
 void Group::setSystemTimer(QTime *timer){
     systemTimer = timer;
 }
-
-string Group::getProgramTime(){
+/*
+*returns time since program started in seconds
+*/string Group::getProgramTime(){
     int timeElapsed = systemTimer->elapsed();
     double time = static_cast<double>(timeElapsed)/1000;
     ostringstream streamObj;

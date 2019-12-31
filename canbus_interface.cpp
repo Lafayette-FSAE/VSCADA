@@ -118,6 +118,7 @@ void canbus_interface::sendData(int addr, uint64_t data){
  * @brief canbus_interface::sendDataByte sends specified bit data over CAN to specified address
  * @param addr CAN address
  * @param data : data to be sent
+ * @param byte : number of bytes in packet
  */
 void canbus_interface::sendDataByte(int addr, uint64_t data, int bytes){
     try{
@@ -161,6 +162,9 @@ void canbus_interface::rebootCAN(){
     }
 }
 
+/*
+* allows system to use can packets when recieved
+*/
 void canbus_interface::enableCAN(){
     connect(can_bus, &QCanBusDevice::framesReceived, this, &canbus_interface::recieve_frame);
 }
