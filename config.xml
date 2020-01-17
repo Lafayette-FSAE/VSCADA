@@ -33,27 +33,6 @@
 		<sensorid>17</sensorid>
 	</group>
 
-	<bootsequence>
-		<bootcan>
-			<address>20</address>
-			<data>23452</data>
-		</bootcan>
-		<bootcan>
-                        <address>20</address>
-                        <data>23542</data>
-                </bootcan>
-		<bootcan>
-                        <address>20</address>
-                        <data>234552</data>
-                </bootcan>
-		<booti2c>2572544</booti2c>
-		<booti2c>2565</booti2c>
-		<booti2c>523</booti2c>
-		<booti2c>260</booti2c>
-		<booti2c>770</booti2c>
-	</bootsequence>
-
-	<!--sync>
 		<cansync>
 			<address>128</address>
 			<data>0</data>
@@ -72,32 +51,6 @@
 			<bytes>2</bytes>
 			<ratems>1000</ratems>
 		</cansync>
-	</sync-->
-
-	<!--systemcontrols>
-		<control>
-			<name>Valve</name>
-			<type>slider</type>
-			<minrange>0</minrange>
-			<maxrange>100</maxrange>
-			<multiplier>0.05</multiplier>
-			<usbchannel>0</usbchannel>
-		</control>
-		<control>
-			<name>Brake</name>
-			<type>button</type>
-			<gpiopin>4<gpiopin>
-			<pressvalue>1</pressvalue>
-			<releasevalue>0</releasevalue>
-		</control>
-		<control>
-			<name>MC Tests</name>
-			<type>textfield</type>
-			<primaddress>301</primaddress>
-			<auxaddress>52</auxaddress>
-			<offset>8</offset>
-		</control>
-	</systemcontrols-->
 
 	<systemstatus>
 		<name>PC_Ready</name>
@@ -165,9 +118,6 @@
 
 	<responses>
 		<response>
-			<id>0</id>
-			<description>Ignore Event</description>
-		</response>
 		<response>
 			<id>1</id>
 			<description>Writing to GPIO pin</description>
@@ -205,7 +155,7 @@
 			<gpioval>1</gpioval>
 		</response>
 	</responses>
-	
+
 	<statemachine>
 		<name>Drive_States</name>
             	<primaddress>1365</primaddress>
@@ -245,55 +195,6 @@
 		</state>
 	</statemachine>
 
-	<!--recordwindow>
-		<id>1</id>
-		<triggersensor>13</triggersensor>
-		<startvalue>1</startvalue>
-		<stopvalue>0</stopvalue>
-		<saveprefix>test</saveprefix>
-		<savepath>./savedsessions/</savepath>
-		<sensors>
-			<sensorid>11</sensorid>
-			<sensorid>14</sensorid>
-			<sensorid>15</sensorid>
-		</sensors>
-	</recordwindow-->
-
-	<recordwindow>
-		<id>2</id>
-		<triggersensor>18</triggersensor>
-		<period>500</period>
-		<startvalue>10</startvalue>
-		<stopvalue>10</stopvalue>
-		<saveprefix>strain</saveprefix>
-		<savepath>./savedsessions/</savepath>
-		<sensors>
-			<sensorid>0</sensorid>
-			<sensorid>1</sensorid>
-			<sensorid>2</sensorid>
-			<sensorid>4</sensorid>
-			<sensorid>17</sensorid>
-		</sensors>
-	</recordwindow>
-
-	<recordwindow>
-		<id>3</id>
-		<triggerstate>
-			<fsm>Drive_States</fsm>
-			<state>Precharge</state>
-		</triggerstate>
-		<period>200</period>
-		<saveprefix>prechargeState</saveprefix>
-		<savepath>./savedsessions/</savepath>
-		<sensors>
-			<sensorid>0</sensorid>
-			<sensorid>1</sensorid>
-			<sensorid>2</sensorid>
-			<sensorid>4</sensorid>
-			<sensorid>17</sensorid>
-		</sensors>
-	</recordwindow>
-
 	<sensors>
 		<sensor>
                         <id>0</id>
@@ -306,11 +207,8 @@
                         <main>0</main>
                         <minimum>0</minimum>
                         <maximum>70</maximum>
-                        <minresponse>0</minresponse>
-			<normresponse>0</normresponse>
-                        <maxresponse>0</maxresponse>
                         <calmultiplier>1</calmultiplier>
-                </sensor>
+    </sensor>
 		<sensor>
                         <id>1</id>
                         <name>Motor Temp</name>
@@ -322,11 +220,8 @@
                         <main>1</main>
                         <minimum>0</minimum>
                         <maximum>200</maximum>
-                        <minresponse>0</minresponse>
-                        <normresponse>0</normresponse>
-                        <maxresponse>0</maxresponse>
                         <calmultiplier>1</calmultiplier>
-                </sensor>
+    </sensor>
 		<sensor>
                         <id>2</id>
                         <name>DC Link Voltage</name>

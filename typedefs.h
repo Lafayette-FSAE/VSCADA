@@ -45,10 +45,6 @@ typedef struct{
     int motor;//used to differ tsi and Controller pckt unneeded with standardization
     int checkRate;//sensor checkrate
 
-    int maxRxnCode;//response code is used but may not be needed for sesnsors
-    int minRxnCode;
-    int normRxnCode;
-
     int i2cAddress;// i^2c controls
     std::vector<uint32_t> i2cConfigs;
     uint8_t i2cReadPointer;
@@ -59,24 +55,17 @@ typedef struct{
     double maximum;
     double calConst;
     int sensorIndex;
-    int state;// may not be used
     int trigger;// value change in sensor that signifies it needs to be stored
     double trigval;
     int reciprocol;	// add rec flag
     uint8_t precision;// decimal point
     double calMultiplier;
+    double val;// value sensor holds before calculating
     double calVal;// value sensor holds after calculating
-    double val; // value of sensor before recalulation
     std::vector<poly> calPolynomial;
     std::vector<std::string> groups;
     std::string unit;
     std::string sensorName;
-
-    //kinda pointless method though it is in use
-    void updateVal(int newVal)
-    {
-        val = newVal;
-    }
 
     void calData(){
         calVal = static_cast<double>(val)*calMultiplier + calConst;
@@ -95,43 +84,18 @@ typedef struct{
     }
 }meta;
 /*
-* this is in use but it may not be needed(can't remember why)
-*/
-typedef struct{
-    uint offset;
-    int gpiopin;
-    bool slider;
-    bool button;
-    int pressVal;
-    int maxslider;
-    int minslider;
-    int releaseVal;
-    int usbChannel;
-    uint auxAddress;
-    bool textField;
-    uint primAddress;
-    uint64_t sentVal;
-    std::string name;
-    std::string type;
-    double multiplier;
-}controlSpec;
-
-/*
 * how scada reacts to different situations
 */
-typedef struct{
-    int defVal;
-    uint offset;
-    int gpioPin;
-    int gpioPair;
-    int canValue;
-    int gpioValue;
-    uint auxAddress;
-    std::string msg;
-    uint primAddress;
-    int responseIndex;
-    int displayTarget;
-}response;
+struct response{
+  uint primAddress;
+  uint auxAddress;
+  int canValue;
+  int gpioPin;
+  int gpioValue;
+  std::string msg;
+  int offset;
+  //vector<int> sensornum
+};
 
 /*
 * pretty self explainitory would benifit from being changed
@@ -155,7 +119,6 @@ typedef struct{
     uint primAddress;
     std::string name;
     std::vector<system_state *> states;
-    //std::vector<condition *> conditions;
 }statemachine;
 
 /*
@@ -169,45 +132,4 @@ typedef struct{
     int rate_ms;
 }canItem;
 
-// a bunch of things i commented out as they were unused or unneeded
-//typedef struct{
-//    int pin;
-//    int value;
-//    int mode;
-//    int rate_ms;
-//}gpioItem;
-
-//typedef struct{
-//    int address;
-//    int data;
-//    int rate_ms;
-//}i2cItem;
-
-//typedef struct{
-//    std::vector<canItem> bootCanCmds;
-//    std::vector<uint32_t> bootI2cCmds;
-//    std::vector<gpioItem> bootGPIOCmds;
-//} bootloader;
-
-//typedef struct{
-//    int id;
-//    int period;
-//    std::vector<int> sensorIds;
-//    int triggerSensor;
-//    std::string triggerFSM;
-//    std::string triggerState;
-//    int startVal;
-//    int stopVal;
-//    std::string savePath;
-//    std::string prefix;
-//    bool active;
-//    void * timer;
-//} recordwindow;
-
-//typedef struct{
-//    std::string name;
-//    uint auxAddress;
-//    uint offset;
-//    int value;
-//}condition;
 #endif // TYPEDEFS_H

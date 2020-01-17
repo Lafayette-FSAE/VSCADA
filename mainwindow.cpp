@@ -215,65 +215,6 @@ void MainWindow::update(){
                 }
         }
     }
-    //    for (auto const &x: conf->groupMap){
-    //        Group * currGrp = x.second;
-    //        vector<meta *> grpMeta = currGrp->get_mainsensors();
-
-    //        QPushButton * headerLabel = new QPushButton;
-    //        headerLabel->setFixedWidth(static_cast<int>(unitWidth*1.5));
-    //        headerLabel->setFixedHeight(unitHeight);
-    //        headerLabel->setText(QString::fromStdString(currGrp->groupId));
-    //        QString  grpLabelFont = QString::number(stringSize*3);
-    //        headerLabel->setStyleSheet("font:"+grpLabelFont+"pt;");
-    //        headerLabel->setFixedWidth(400);
-    //        healthButtons.insert(make_pair(currGrp->groupId,headerLabel));
-    //        connect(headerLabel, SIGNAL(clicked()), this, SLOT(detailButtonPushed()));
-    //        detailButtons.insert(make_pair(currGrp->groupId,headerLabel));
-    //        groupSectionLayout->addWidget(headerLabel,fieldRowCount,fieldColCount,1,2,Qt::AlignCenter);
-    //        fieldRowCount++;
-
-    //        if(grpMeta.size() > 0){
-    //            for (uint j = 0; j < grpMeta.size(); j++){
-    //                QLabel * label = new QLabel;
-    //                label->setText(QString::fromStdString(grpMeta.at(j)->sensorName));
-    //                label->setFixedWidth(unitWidth*2);
-    //                label->setFixedHeight(static_cast<int>(unitHeight*0.8));
-    //                QString LabelFont = QString::number(stringSize*2);
-    //                label->setStyleSheet("font:"+LabelFont+"pt;");
-    //                groupSectionLayout->addWidget(label,fieldRowCount,fieldColCount);
-
-
-    //                QLineEdit * edit = edits[grpMeta.at(j)->sensorIndex];
-    //                edit->setStyleSheet("font:"+editFont+"pt;");
-    //                edit->setFixedWidth(static_cast<int>(unitWidth*2.5));
-    //                edit->setFixedHeight(static_cast<int>(unitHeight*0.8));
-    //                edit->setText("--");
-    //                groupSectionLayout->addWidget(edit,fieldRowCount,fieldColCount+1);
-    //                fieldRowCount++;
-    //            }
-    //        }
-
-    //        fieldRowCount = maxSensorRow + 2;
-
-    //        QFrame * hBorder1 = new QFrame(this);
-    //        hBorder1->setLineWidth(2);
-    //        hBorder1->setMidLineWidth(1);
-    //        hBorder1->setFrameShape(QFrame::HLine);
-    //        hBorder1->setFrameShadow(QFrame::Raised);
-    //        if (fieldColCount != 0) groupSectionLayout->addWidget(hBorder1,fieldRowCount,fieldColCount-1,1,4);
-    //        else groupSectionLayout->addWidget(hBorder1,fieldRowCount,fieldColCount,1,4);
-    //        fieldRowCount++;
-    //        fieldRowCount = 0;
-    //        fieldColCount = fieldColCount + 2;
-
-    //        QFrame * vBorder = new QFrame(this);
-    //        vBorder->setLineWidth(2);
-    //        vBorder->setMidLineWidth(1);
-    //        vBorder->setFrameShape(QFrame::VLine);
-    //        vBorder->setFrameShadow(QFrame::Raised);
-    //        groupSectionLayout->addWidget(vBorder,fieldRowCount,fieldColCount,maxSensorRow+3,1);
-    //        fieldColCount++;
-    //    }
 
     QWidget * groupWidget = new QWidget;
     groupWidget->setLayout(groupSectionLayout);

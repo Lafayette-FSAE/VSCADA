@@ -16,7 +16,7 @@
  */
 DataControl::DataControl(gpio_interface * gpio, canbus_interface * can, usb7402_interface * usb,
                          map<string, Group *> subMap, vector<system_state *> stts, vector<statemachine *> FSM,
-                         int mode, vector<controlSpec *> ctrlSpecs, map<int, response> rspMap,
+                         int mode, map<int, response> rspMap,
                          map<uint32_t, vector<meta *>*> canMap,vector<canItem> cSyncs,
                          map<int, meta*> sensMap){
 
@@ -36,7 +36,6 @@ DataControl::DataControl(gpio_interface * gpio, canbus_interface * can, usb7402_
     responseMap = rspMap;
     subsystemMap = subMap;
     gpioInterface = gpio;
-    controlSpecs = ctrlSpecs;
     systemTimer = new QTime;
     canSensorGroup = canMap;
     sensorMap = sensMap;
@@ -160,16 +159,6 @@ void DataControl::receive_can_data(uint32_t addr, uint64_t data){
                         deactivateLog(currState);
                     }
                 }
-
-//                for (uint j = 0; j < currFSM->conditions.size(); j++){
-//                    condition * currCondition = currFSM->conditions.at(j);
-//                    if (currCondition->value != static_cast<int>(isolateData64(static_cast<uint>(currCondition->auxAddress),static_cast<uint>(currCondition->offset),data))){
-//                        currCondition->value = static_cast<int>(isolateData64(static_cast<uint>(currCondition->auxAddress),static_cast<uint>(currCondition->offset),data));
-//                        print = true;
-//                    }
-//                    msg += currCondition->name + "->" + to_string(currCondition->value) ;
-//                }
-
                 if (print){
                     emit pushMessage(msg);
                 }
@@ -308,7 +297,6 @@ void DataControl::checkThresholds(meta * sensor){
         if (sensor->state != 0){
             sensor->state = 0;
             emit updateEditColor("yellow",sensor);
-            executeRxn(sensor->normRxnCode);
             for (auto const &x : sensor->groups){
                 if (subsystemMap[x]->error) {
                     subsystemMap[x]->checkError();
@@ -390,63 +378,9 @@ void DataControl::executeRxn(int responseIndex){
             uint64_t fullData = static_cast<uint64_t>(rsp.canValue);
             emit sendCANData(rsp.primAddress,fullData);
         }
-        if (rsp.gpioPin >= 0){
-            emit pushGPIOData(rsp.gpioPin,rsp.gpioValue);
-        }
     } catch (...) {
         pushMessage("CRITICAL ERROR: Crash on executing reaction to data");
     }
-}
-
-/**
- * @brief DataControl::receive_control_val : receives control signal to be sent
- * @param data : data to be sent
- * @param spec : specifications of control signal
- */
-void DataControl::receive_control_val(int data, controlSpec * spec){
-    try{
-        int addr = spec->primAddress;
-        stringstream s;
-        if (addr != 1000){
-            data = static_cast<int>(data*spec->multiplier);
-            uint64_t fullData = static_cast<uint64_t>(data);
-            fullData = LSBto64Spec(static_cast<uint>(spec->auxAddress),static_cast<uint>(spec->offset),fullData);
-            spec->sentVal = spec->sentVal & ~LSBto64Spec(static_cast<uint>(spec->auxAddress),static_cast<uint>(spec->offset),0xFFFFFFFF);
-            spec->sentVal = spec->sentVal | fullData;
-            s << showbase << internal << setfill('0');
-            s << "Data " << std::hex << setw(16) << fullData << " sent to address " << addr;
-            emit sendCANData(addr,spec->sentVal);
-            emit pushMessage(s.str());
-        } else if (spec->usbChannel != -1){
-            float usbData = static_cast<float>(data)*static_cast<float>(spec->multiplier);
-            bool success = true;
-            emit sendToUSB7204(static_cast<uint8_t>(spec->usbChannel),usbData, &success);
-            if (success){
-                s << "Value " << usbData << " written to usb out channel " << spec->usbChannel;
-                emit pushMessage(s.str());
-            }
-        }
-    } catch (...) {
-        pushMessage("CRITICAL ERROR: Crash on receiving control data");
-    }
-}
-
-/**
- * @brief DataControl::get_control_specs : returns all configured control specs
- * @return
- */
-vector<controlSpec *> DataControl::get_control_specs(){
-    return controlSpecs;
-}
-
-/** not used anymore
- * @brief DataControl::saveSession : saves database fiel in the savedsessions folder
- * @param name : name of saved file
- */
-void DataControl::saveSession(string name){
-    string systemString = "mv ./savedsessions/system.db ./savedsessions/";
-    systemString += name;
-    system(systemString.c_str());
 }
 
 /**

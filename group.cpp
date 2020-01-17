@@ -5,13 +5,15 @@
  * @param mtr - data monitor module
  * @param sensors - vector of subsystem sensors configured
  */
-Group::Group(vector<meta *> sensors, string id, vector<response> respVector, vector<meta *> mainMeta){
-    msgQueue = new QQueue<string>;
+Group::Group(vector<meta *> sensors, string id, vector<response> respVector, DBTable * dbtool, bool charc){
     error=false;
-    sensorMeta = sensors;
     groupId = id;
     responseVector = respVector;
-    mainSensorVector = mainMeta;
+    mainSensorVector = sensors;
+    dbase = dbtool;
+    isCharcterised=charc;
+    if(isCharcterised)
+      createGroupTable();
 }
 
 /**
@@ -34,14 +36,6 @@ void Group::setSystemTimer(QTime *timer){
     streamObj << std::setprecision(3);
     streamObj << time;
     return streamObj.str();
-}
-
-/**
- * @brief Group::get_metadata -
- * @return
- */
-vector<meta *> Group::get_metadata(){
-    return sensorMeta;
 }
 
 /**
@@ -69,8 +63,8 @@ vector<meta *> Group::get_mainsensors(){
 }
 
 void Group::checkError(){
-    for (uint i = 0; i < sensorMeta.size(); i++){
-        if (sensorMeta.at(i)->state != 0) return;
+    for (uint i = 0; i < mainSensorVector.size(); i++){
+        if (mainSensorVector.at(i)->state != 0) return;
     }
     error = false;
 }
@@ -82,15 +76,35 @@ void Group::checkError(){
 void Group::logMsg(string msg){
     string colString = "time,reactionId,message";
     string rowString = "'" + getProgramTime() + "','console','" + msg + "'";
-    //dbase->insert_row("system_log",colString,rowString);
     pushMessage(msg);
 }
 
-/**
- * @brief Group::get_data - retrieves subsystem raw data
- */
-vector<int> Group::get_data(){
-    return rawData;
+void Group::createGroupTable(){
+  if(mainSensorVector.size()<1){
+    isCharcterised=false;
+    return;
+}
+  string rowString;
+  for(int i=0; i<mainSensorVector.size();i++){
+        rowString=mainSensorVector.at(i)->id+"char not null,";
+  }
+  rowString.erase(rowString.end());
+  dbase->create_sec(groupId+"charc",rowString);
+  timer = new QTimer;
+  connect(timer,SIGNAL(timeout()),this, SLOT(charcGroup()));
+  timer->start(checkrate);
+}
+
+void Group::charcGroup(){
+  string rowString;
+  string colString;
+  for(int i=0; i<mainSensorVector.size();i++){
+        colString="'"+mainSensorVector.at(i)->id"','"
+        rowString="'" + to_string(mainSensorVector.at(i)->calVal) + currsensor->unit+"','";
+  }
+  rowString.erase(rowString.end()-1);
+  colString.erase(colString.end()-1);
+  dbase->add_row_sec(groupId+"charc",colString,rowString);
 }
 
 /**

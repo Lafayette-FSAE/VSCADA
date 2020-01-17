@@ -27,10 +27,6 @@ Config::~Config(){
     for (uint i = 0; i < sysStates.size(); i++){
         if (sysStates.at(i) != nullptr) delete sysStates.at(i);
     }
-
-    for (uint i = 0; i < controlSpecs.size(); i++){
-        if (controlSpecs.at(i) != nullptr) delete controlSpecs.at(i);
-    }
 }
 
 /**
@@ -82,7 +78,6 @@ bool Config::read_config_file_data(){
     QDomNodeList sensorNodes = doc.elementsByTagName("sensor");
     QDomNodeList cansync = doc.elementsByTagName("cansync");
 
-    //QDomNodeList recordNodes = doc.elementsByTagName("recordwindow");
 
 #ifdef CONFIG_PRINT
     cout << "Number of responses: " << responseNodes.size() << endl;
@@ -91,7 +86,6 @@ bool Config::read_config_file_data(){
     cout << "Number of state machines: " << stateMachines.size() << endl;
     cout << "Number of configured sensors: " << sensorNodes.size() << endl;
     cout << "Number of Can messages to send : "<< cansync.size() << endl;
-    //cout << "Number of record nodes: " << recordNodes.size() << endl;
 #endif
 
     //*****************************//
@@ -170,25 +164,7 @@ bool Config::read_config_file_data(){
                     }
                 }
                 thisFSM->states.push_back(thisState);
-            }/* else if (machineXteristics.at(j).nodeName().toStdString().compare("condition") == 0){
-                QDomNodeList stateXteristics = machineXteristics.at(j).childNodes();
-                thisCondition = new condition;
-                thisCondition->value = -1;
-                for (int k = 0; k < stateXteristics.size(); k++){
-                    if (stateXteristics.at(k).nodeName().toStdString().compare("name") == 0){
-                        thisCondition->name = stateXteristics.at(k).firstChild().nodeValue().toStdString();
-                    } else if (stateXteristics.at(k).nodeName().toStdString().compare("auxaddress") == 0){
-                        if (isInteger(stateXteristics.at(k).firstChild().nodeValue().toStdString()))
-                            thisState->auxAddress = stoi(stateXteristics.at(k).firstChild().nodeValue().toStdString());
-                        else configErrors.push_back("CONFIG ERROR: state value not an integer");
-                    } else if (stateXteristics.at(k).nodeName().toStdString().compare("offset") == 0){
-                        if (isInteger(stateXteristics.at(k).firstChild().nodeValue().toStdString()))
-                            thisState->offset = stoi(stateXteristics.at(k).firstChild().nodeValue().toStdString());
-                        else configErrors.push_back("CONFIG ERROR: state value not an integer");
-                    }
-                }
-                thisFSM->conditions.push_back(thisCondition);
-            }*/
+            }
         }
         FSMs.push_back(thisFSM);
     }
@@ -305,18 +281,14 @@ bool Config::read_config_file_data(){
 
     for (int k = 0; k < sensorNodes.size(); k++){
         storedSensor = new meta;
-        storedSensor->sensorIndex=k;
+        //storedSensor->sensorIndex=k;
         storedSensor->val = 0;
         storedSensor->calVal = 0;
         storedSensor->motor = 0;
-        storedSensor->state = 0;
         storedSensor->sensorIndex = -1;
         storedSensor->minimum = -1;
         storedSensor->maximum = -1;
         storedSensor->checkRate = -1;
-        storedSensor->maxRxnCode = 0;
-        storedSensor->minRxnCode = 0;
-        storedSensor->normRxnCode = 0;
         storedSensor->primAddress = 1000;
         storedSensor->auxAddress = 0;
         storedSensor->offset = 0;
@@ -485,7 +457,7 @@ bool Config::read_config_file_data(){
         cout << "Group Sensors Processed" << endl;
 
         //create group object
-        grp = new Group(sensors,groupId,allResponses,sensors);
+        grp = new Group(sensors,groupId,allResponses);
         groupMap.insert(make_pair(grp->groupId,grp));
     }
     //****************************************//
@@ -550,7 +522,7 @@ bool Config::read_config_file_data(){
     gpioInterface = new gpio_interface(gpioSensors,i2cSensors,allResponses);
     canInterface = new canbus_interface(canRate, canSensors);
     dataCtrl = new DataControl(gpioInterface,canInterface,usb7204,groupMap,sysStates,FSMs,
-                               systemMode,controlSpecs,responseMap,canSensorGroup,canSyncs,
+                               systemMode,responseMap,canSensorGroup,canSyncs,
                                sensorMap);
     trafficTest = new TrafficTest(canSensorMap,gpioSensors,i2cSensors,usbSensors,canRate,gpioRate,usb7204Rate,dataCtrl);
 

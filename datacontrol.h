@@ -63,12 +63,9 @@ public:
     gpio_interface * gpioInterface;
     canbus_interface * canInterface;
     map<int,response> responseMap;
-//    map<int,recordwindow *> recordSensorMap;
-//    map<int,recordwindow *> recordStateMap;
     map<int,string> recordColStrings;
     vector<controlSpec *> controlSpecs;
     map<string, Group *> subsystemMap;
-//    vector<bootloader> bootConfigs;
     map<uint32_t,vector<meta *> *> canSensorGroup;
     vector<canItem> canSyncs;
     DBTable *dbase;
