@@ -274,7 +274,9 @@ void DataControl::checkThresholds(meta * sensor){
             msg = sensor->sensorName + " exceeded upper threshold: " + to_string(sensor->maximum);
             emit pushMessage(msg);
             logData(sensor);
-            executeRxn(sensor->maxRxnCode);
+            for(auto const &r :responseMap){
+              
+            }executeRxn(sensor->maxRxnCode);
             pushMessage(msg);
         }
     } else if (sensor->calVal <= sensor->minimum){

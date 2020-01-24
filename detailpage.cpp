@@ -126,6 +126,12 @@ void detailPage::update(){
     hBorder1->setFrameShape(QFrame::HLine);
     hBorder1->setFrameShadow(QFrame::Raised);
     mainLayout->addWidget(hBorder1, Qt::AlignCenter);
+
+    QCheckBox *checkbox = new QCheckBox("Characterise", this);
+    checkbox->setTristate(currentGroup->isCharcterised);
+    connect(checkbox, SIGNAL(stateChanged()),currentGroup,SLOT(charcGroup()));
+    checkbox->setAlignment(Qt::AlignLeft);
+    mainLayout->addWidget(checkbox);
 }
 
 /*

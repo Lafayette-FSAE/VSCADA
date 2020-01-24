@@ -45,6 +45,7 @@ bool Config::read_config_file_data(){
     gpioRate = 1000;
     usb7204Rate = 1000;
     canRate = 125000;
+    DBTable *dbase = new DBTable("SCADA.db");
 
     //************************************//
     //*****extract file to DOM object*****//
@@ -253,8 +254,13 @@ bool Config::read_config_file_data(){
                 if (isInteger(responseXteristics.at(j).firstChild().nodeValue().toStdString()))
                     thisRsp.canValue = stoi(responseXteristics.at(j).firstChild().nodeValue().toStdString());
                 else configErrors.push_back("CONFIG ERROR: CAN response value not an integer");
+            }else if (groupXteristics.at(j).nodeName().toStdString().compare("sensorid") == 0){
+              if (isInteger(responseXteristics.at(j).firstChild().nodeValue().toStdString()))
+                sensorId = stoi(groupXteristics.at(j).firstChild().nodeValue().toStdString());
+              else configErrors.push_back("CONFIG ERROR: sensor Id mismatch. Check IDs");
             }
         }
+        thisRsp.sensornum
         responseMap.insert(make_pair(thisRsp.responseIndex,thisRsp));
         allResponses.push_back(thisRsp);
     }
@@ -354,19 +360,7 @@ bool Config::read_config_file_data(){
                 else configErrors.push_back("CONFIG ERROR: sensor main field not an integer");
             } else if (attributeList.at(m).nodeName().toStdString().compare("maximum") == 0){
                 storedSensor->maximum = stod(attributeList.at(m).firstChild().nodeValue().toStdString());
-            } else if (attributeList.at(m).nodeName().toStdString().compare("minresponse") == 0){
-                if (isInteger(attributeList.at(m).firstChild().nodeValue().toStdString()))
-                    storedSensor->minRxnCode = stoi(attributeList.at(m).firstChild().nodeValue().toStdString());
-                else configErrors.push_back("CONFIG ERROR: sensor min reaction code not an integer");
-            } else if (attributeList.at(m).nodeName().toStdString().compare("maxresponse") == 0){
-                if (isInteger(attributeList.at(m).firstChild().nodeValue().toStdString()))
-                    storedSensor->maxRxnCode = stoi(attributeList.at(m).firstChild().nodeValue().toStdString());
-                else configErrors.push_back("CONFIG ERROR: sensor max reaction code not an integer");
-            } else if (attributeList.at(m).nodeName().toStdString().compare("normresponse") == 0){
-                if (isInteger(attributeList.at(m).firstChild().nodeValue().toStdString()))
-                    storedSensor->normRxnCode = stoi(attributeList.at(m).firstChild().nodeValue().toStdString());
-                else configErrors.push_back("CONFIG ERROR: sensor norm reaction code not an integer");
-            } else if (attributeList.at(m).nodeName().toStdString().compare("checkrate") == 0){
+            }  else if (attributeList.at(m).nodeName().toStdString().compare("checkrate") == 0){
                 if (isInteger(attributeList.at(m).firstChild().nodeValue().toStdString()))
                     storedSensor->checkRate = stoi(attributeList.at(m).firstChild().nodeValue().toStdString());
                 else configErrors.push_back("CONFIG ERROR: sensor check rate not an integer");
@@ -439,7 +433,7 @@ bool Config::read_config_file_data(){
         string groupId;
         int sensorId;
         vector<meta *> sensors;
-
+        bool charc = false;
         //get group characteristics: groupId, minrate and maxrate
         QDomNodeList groupXteristics = groupNodes.at(i).childNodes();
         for (int j = 0; j < groupXteristics.size(); j++){
@@ -457,28 +451,25 @@ bool Config::read_config_file_data(){
         cout << "Group Sensors Processed" << endl;
 
         //create group object
-        grp = new Group(sensors,groupId,allResponses);
+        grp = new Group(sensors,groupId,dbase,charc);
         groupMap.insert(make_pair(grp->groupId,grp));
     }
     //****************************************//
     //*****record all sensors to database*****//
     //****************************************//
     // write create universal tables
-        DBTable *dbase = new DBTable("SCADA.db");
         dbase->create_sec("system_info","id char not null,sensorname char not null,"
-                                 "minthreshold char not null,maxthreshold char not null,"
-                                 "maxresponseid char not null,minresponseid char not null,"
+                                 "maxresponseid char not null,"
                                  "calconstant char not null");
 
         //****************************************//
         //*****record all sensors to database*****//
         //****************************************//
         dbase->SecNum("system_info");
-        sensorColString = "id,sensorname,minthreshold,maxthreshold,maxresponseid,minresponseid,calconstant";
+        sensorColString = "id,sensorname,maximum,calconstant";
         for (auto const& x : sensorMap){
             sensorRowString = "'" + to_string(x.second->sensorIndex) + "','" + x.second->sensorName + "','" + to_string(x.second->minimum)
-                    + "','" + to_string(x.second->maximum) + "','" + to_string(x.second->maxRxnCode) +
-                    "','" + to_string(x.second->minRxnCode) + "','" + to_string(x.second->calConst) + "'";
+                    + "','" + to_string(x.second->maximum) + "','" + to_string(x.second->calConst) + "'";
             dbase->add_row_sec("system_info",sensorColString,sensorRowString);
         }
     for (int i = 0; i < cansync.size(); i++){

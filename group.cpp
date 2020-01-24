@@ -5,10 +5,9 @@
  * @param mtr - data monitor module
  * @param sensors - vector of subsystem sensors configured
  */
-Group::Group(vector<meta *> sensors, string id, vector<response> respVector, DBTable * dbtool, bool charc){
+Group::Group(vector<meta *> sensors, string id, DBTable * dbtool, bool charc){
     error=false;
     groupId = id;
-    responseVector = respVector;
     mainSensorVector = sensors;
     dbase = dbtool;
     isCharcterised=charc;

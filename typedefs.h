@@ -44,7 +44,7 @@ typedef struct{
     int gpioPin;
     int motor;//used to differ tsi and Controller pckt unneeded with standardization
     int checkRate;//sensor checkrate
-
+    int state; // used when sensor exceeds max or min
     int i2cAddress;// i^2c controls
     std::vector<uint32_t> i2cConfigs;
     uint8_t i2cReadPointer;
@@ -94,7 +94,7 @@ struct response{
   int gpioValue;
   std::string msg;
   int offset;
-  //vector<int> sensornum
+  vector<int> sensorId;
 };
 
 /*
