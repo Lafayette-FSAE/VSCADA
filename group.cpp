@@ -5,13 +5,14 @@
  * @param mtr - data monitor module
  * @param sensors - vector of subsystem sensors configured
  */
-Group::Group(vector<meta *> sensors, string id, vector<response> respVector, vector<meta *> mainMeta){
-    msgQueue = new QQueue<string>;
+Group::Group(vector<meta *> sensors, string id, bool charc){
     error=false;
-    sensorMeta = sensors;
     groupId = id;
-    responseVector = respVector;
-    mainSensorVector = mainMeta;
+    mainSensorVector = sensors;
+    dbase = new DBTable("SCADA.db");
+    isCharcterised=charc;
+    if(isCharcterised)
+        createGroupTable();
 }
 
 /**
@@ -24,8 +25,9 @@ Group::~Group(){
 void Group::setSystemTimer(QTime *timer){
     systemTimer = timer;
 }
-
-string Group::getProgramTime(){
+/*
+*returns time since program started in seconds
+*/string Group::getProgramTime(){
     int timeElapsed = systemTimer->elapsed();
     double time = static_cast<double>(timeElapsed)/1000;
     ostringstream streamObj;
@@ -33,14 +35,6 @@ string Group::getProgramTime(){
     streamObj << std::setprecision(3);
     streamObj << time;
     return streamObj.str();
-}
-
-/**
- * @brief Group::get_metadata -
- * @return
- */
-vector<meta *> Group::get_metadata(){
-    return sensorMeta;
 }
 
 /**
@@ -52,14 +46,6 @@ void Group::set_rate(int newRate){
 }
 
 /**
- * @brief Group::setMonitor - sets monitor object for class
- * @param mtr
- */
-void Group::setMonitor(DataMonitor * mtr){
-    monitor = mtr;
-}
-
-/**
  * @brief Group::get_mainMeta : retrieves main subsystem sensors
  * @return
  */
@@ -68,8 +54,8 @@ vector<meta *> Group::get_mainsensors(){
 }
 
 void Group::checkError(){
-    for (uint i = 0; i < sensorMeta.size(); i++){
-        if (sensorMeta.at(i)->state != 0) return;
+    for (uint i = 0; i < mainSensorVector.size(); i++){
+        if (mainSensorVector.at(i)->state != 0) return;
     }
     error = false;
 }
@@ -79,17 +65,38 @@ void Group::checkError(){
  * @param msg
  */
 void Group::logMsg(string msg){
-    string colString = "time,reactionId,message";
-    string rowString = "'" + getProgramTime() + "','console','" + msg + "'";
-    //dbase->insert_row("system_log",colString,rowString);
-    pushMessage(msg);
+    emit pushMessage(msg);
 }
 
-/**
- * @brief Group::get_data - retrieves subsystem raw data
- */
-vector<int> Group::get_data(){
-    return rawData;
+void Group::createGroupTable(){
+    if(mainSensorVector.size()<1 || isCharcterised){
+        isCharcterised=false;
+        return;
+    }
+    isCharcterised=true;
+    string rowString;
+    for(uint i=0; i<mainSensorVector.size();i++){
+        rowString+=(mainSensorVector.at(i)->sensorName)+" char not null,";
+    }
+    rowString.erase(rowString.end()-1);
+    dbase->create_sec(groupId+"charc",rowString);
+    timer = new QTimer;
+    connect(timer,SIGNAL(timeout()),this, SLOT(charcGroup()));
+    timer->start(checkRate);
+}
+
+void Group::charcGroup(){
+    if(!isCharcterised)
+        return;
+    string rowString;
+    string colString;
+    for(uint i=0; i<mainSensorVector.size();i++){
+        colString+="'"+(mainSensorVector.at(i)->sensorName)+"','";
+        rowString+="'" + to_string(mainSensorVector.at(i)->calVal) + mainSensorVector.at(i)->unit+"',";
+    }
+    rowString.erase(rowString.end()-1);
+    colString.erase(colString.end()-1);
+    dbase->add_row_sec(groupId+"charc",colString,rowString);
 }
 
 /**

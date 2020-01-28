@@ -27,10 +27,6 @@ Config::~Config(){
     for (uint i = 0; i < sysStates.size(); i++){
         if (sysStates.at(i) != nullptr) delete sysStates.at(i);
     }
-
-    for (uint i = 0; i < controlSpecs.size(); i++){
-        if (controlSpecs.at(i) != nullptr) delete controlSpecs.at(i);
-    }
 }
 
 /**
@@ -82,7 +78,6 @@ bool Config::read_config_file_data(){
     QDomNodeList sensorNodes = doc.elementsByTagName("sensor");
     QDomNodeList cansync = doc.elementsByTagName("cansync");
 
-    //QDomNodeList recordNodes = doc.elementsByTagName("recordwindow");
 
 #ifdef CONFIG_PRINT
     cout << "Number of responses: " << responseNodes.size() << endl;
@@ -91,7 +86,6 @@ bool Config::read_config_file_data(){
     cout << "Number of state machines: " << stateMachines.size() << endl;
     cout << "Number of configured sensors: " << sensorNodes.size() << endl;
     cout << "Number of Can messages to send : "<< cansync.size() << endl;
-    //cout << "Number of record nodes: " << recordNodes.size() << endl;
 #endif
 
     //*****************************//
@@ -170,25 +164,7 @@ bool Config::read_config_file_data(){
                     }
                 }
                 thisFSM->states.push_back(thisState);
-            }/* else if (machineXteristics.at(j).nodeName().toStdString().compare("condition") == 0){
-                QDomNodeList stateXteristics = machineXteristics.at(j).childNodes();
-                thisCondition = new condition;
-                thisCondition->value = -1;
-                for (int k = 0; k < stateXteristics.size(); k++){
-                    if (stateXteristics.at(k).nodeName().toStdString().compare("name") == 0){
-                        thisCondition->name = stateXteristics.at(k).firstChild().nodeValue().toStdString();
-                    } else if (stateXteristics.at(k).nodeName().toStdString().compare("auxaddress") == 0){
-                        if (isInteger(stateXteristics.at(k).firstChild().nodeValue().toStdString()))
-                            thisState->auxAddress = stoi(stateXteristics.at(k).firstChild().nodeValue().toStdString());
-                        else configErrors.push_back("CONFIG ERROR: state value not an integer");
-                    } else if (stateXteristics.at(k).nodeName().toStdString().compare("offset") == 0){
-                        if (isInteger(stateXteristics.at(k).firstChild().nodeValue().toStdString()))
-                            thisState->offset = stoi(stateXteristics.at(k).firstChild().nodeValue().toStdString());
-                        else configErrors.push_back("CONFIG ERROR: state value not an integer");
-                    }
-                }
-                thisFSM->conditions.push_back(thisCondition);
-            }*/
+            }
         }
         FSMs.push_back(thisFSM);
     }
@@ -240,14 +216,14 @@ bool Config::read_config_file_data(){
     for (int i = 0; i < responseNodes.size(); i++){
         QDomNodeList responseXteristics = responseNodes.at(i).childNodes();
         response thisRsp;
-        thisRsp.primAddress = 1000;
-        thisRsp.auxAddress = -1;
+        thisRsp.responseIndex=i;
+        thisRsp.address = 1000;
+        thisRsp.data = -1;
         thisRsp.offset = 0;
         thisRsp.gpioPin = -1;
-        thisRsp.canValue = -1;
         thisRsp.gpioValue = -1;
         for (int j = 0; j < responseXteristics.size(); j++){
-            if (responseXteristics.at(j).nodeName().toStdString().compare("id") == 0){
+                        if (responseXteristics.at(j).nodeName().toStdString().compare("id") == 0){
                 if (isInteger(responseXteristics.at(j).firstChild().nodeValue().toStdString()))
                     thisRsp.responseIndex = stoi(responseXteristics.at(j).firstChild().nodeValue().toStdString());
                 else configErrors.push_back("CONFIG ERROR: response index not an integer");
@@ -255,11 +231,11 @@ bool Config::read_config_file_data(){
                 thisRsp.msg = responseXteristics.at(j).firstChild().nodeValue().toStdString();
             } else if (responseXteristics.at(j).nodeName().toStdString().compare("primaddress") == 0){
                 if (isInteger(responseXteristics.at(j).firstChild().nodeValue().toStdString()))
-                    thisRsp.primAddress = stoul(responseXteristics.at(j).firstChild().nodeValue().toStdString());
+                    thisRsp.address = stoul(responseXteristics.at(j).firstChild().nodeValue().toStdString());
                 else configErrors.push_back("CONFIG ERROR: primary address not an integer");
             } else if (responseXteristics.at(j).nodeName().toStdString().compare("auxaddress") == 0){
                 if (isInteger(responseXteristics.at(j).firstChild().nodeValue().toStdString()))
-                    thisRsp.auxAddress = stoul(responseXteristics.at(j).firstChild().nodeValue().toStdString());
+                    thisRsp.data = stoul(responseXteristics.at(j).firstChild().nodeValue().toStdString());
                 else configErrors.push_back("CONFIG ERROR: aux address not an integer");
             } else if (responseXteristics.at(j).nodeName().toStdString().compare("offset") == 0){
                 if (isInteger(responseXteristics.at(j).firstChild().nodeValue().toStdString()))
@@ -273,24 +249,19 @@ bool Config::read_config_file_data(){
                 if (isInteger(responseXteristics.at(j).firstChild().nodeValue().toStdString()))
                     thisRsp.gpioValue = stoi(responseXteristics.at(j).firstChild().nodeValue().toStdString());
                 else configErrors.push_back("CONFIG ERROR: GPIO response value not an integer");
-            } else if (responseXteristics.at(j).nodeName().toStdString().compare("canval") == 0){
-                if (isInteger(responseXteristics.at(j).firstChild().nodeValue().toStdString()))
-                    thisRsp.canValue = stoi(responseXteristics.at(j).firstChild().nodeValue().toStdString());
-                else configErrors.push_back("CONFIG ERROR: CAN response value not an integer");
             }
         }
-        responseMap.insert(make_pair(thisRsp.responseIndex,thisRsp));
+        responseMap.insert(make_pair(i,thisRsp));
         allResponses.push_back(thisRsp);
     }
 
 #ifdef CONFIG_PRINT
     for (uint i = 0; i < allResponses.size(); i++){
-        cout << "Response ID: " << allResponses.at(i).responseIndex << endl;
+        //cout << "Response ID: " << allResponses.at(i).responseIndex << endl;
         cout << "description: " << allResponses.at(i).msg << endl;
-        cout << "can prim address: " << allResponses.at(i).primAddress << endl;
-        cout << "can aux address: " << allResponses.at(i).auxAddress << endl;
+        cout << "can prim address: " << allResponses.at(i).address << endl;
+        cout << "can aux address: " << allResponses.at(i).data << endl;
         cout << "can offset: " << allResponses.at(i).offset << endl;
-        cout << "can value: " << allResponses.at(i).canValue << endl;
         cout << "gpio pin: " << allResponses.at(i).gpioPin << endl;
         cout << "gpio value: " << allResponses.at(i).gpioValue << endl << endl;
     }
@@ -305,18 +276,14 @@ bool Config::read_config_file_data(){
 
     for (int k = 0; k < sensorNodes.size(); k++){
         storedSensor = new meta;
-        storedSensor->sensorIndex=k;
+        //storedSensor->sensorIndex=k;
         storedSensor->val = 0;
         storedSensor->calVal = 0;
         storedSensor->motor = 0;
-        storedSensor->state = 0;
         storedSensor->sensorIndex = -1;
         storedSensor->minimum = -1;
         storedSensor->maximum = -1;
         storedSensor->checkRate = -1;
-        storedSensor->maxRxnCode = 0;
-        storedSensor->minRxnCode = 0;
-        storedSensor->normRxnCode = 0;
         storedSensor->primAddress = 1000;
         storedSensor->auxAddress = 0;
         storedSensor->offset = 0;
@@ -330,8 +297,8 @@ bool Config::read_config_file_data(){
         storedSensor->precision = 2;
         storedSensor->trigger=10;
         storedSensor->trigval=0;
-		// init rec flag
-		storedSensor->reciprocol = 0;
+        // init rec flag
+        storedSensor->reciprocol = 0;
         QDomNodeList attributeList = sensorNodes.at(k).childNodes();
         for (int m = 0; m < attributeList.size(); m++){
             if(attributeList.at(m).nodeName().toStdString().compare("name") == 0){
@@ -354,7 +321,7 @@ bool Config::read_config_file_data(){
                 if ( canAddressMap.find(storedSensor->primAddress) == canAddressMap.end() ) {
                     canAddressMap.insert(make_pair(storedSensor->primAddress,1));
                 } else {
-                  // found so skip
+                    // found so skip
                 }
                 canSensorMap.insert(make_pair(storedSensor->primAddress+storedSensor->auxAddress, storedSensor));
                 if ( canSensorGroup.find(storedSensor->primAddress) == canSensorGroup.end() ) {
@@ -382,19 +349,7 @@ bool Config::read_config_file_data(){
                 else configErrors.push_back("CONFIG ERROR: sensor main field not an integer");
             } else if (attributeList.at(m).nodeName().toStdString().compare("maximum") == 0){
                 storedSensor->maximum = stod(attributeList.at(m).firstChild().nodeValue().toStdString());
-            } else if (attributeList.at(m).nodeName().toStdString().compare("minresponse") == 0){
-                if (isInteger(attributeList.at(m).firstChild().nodeValue().toStdString()))
-                    storedSensor->minRxnCode = stoi(attributeList.at(m).firstChild().nodeValue().toStdString());
-                else configErrors.push_back("CONFIG ERROR: sensor min reaction code not an integer");
-            } else if (attributeList.at(m).nodeName().toStdString().compare("maxresponse") == 0){
-                if (isInteger(attributeList.at(m).firstChild().nodeValue().toStdString()))
-                    storedSensor->maxRxnCode = stoi(attributeList.at(m).firstChild().nodeValue().toStdString());
-                else configErrors.push_back("CONFIG ERROR: sensor max reaction code not an integer");
-            } else if (attributeList.at(m).nodeName().toStdString().compare("normresponse") == 0){
-                if (isInteger(attributeList.at(m).firstChild().nodeValue().toStdString()))
-                    storedSensor->normRxnCode = stoi(attributeList.at(m).firstChild().nodeValue().toStdString());
-                else configErrors.push_back("CONFIG ERROR: sensor norm reaction code not an integer");
-            } else if (attributeList.at(m).nodeName().toStdString().compare("checkrate") == 0){
+            }  else if (attributeList.at(m).nodeName().toStdString().compare("checkrate") == 0){
                 if (isInteger(attributeList.at(m).firstChild().nodeValue().toStdString()))
                     storedSensor->checkRate = stoi(attributeList.at(m).firstChild().nodeValue().toStdString());
                 else configErrors.push_back("CONFIG ERROR: sensor check rate not an integer");
@@ -451,9 +406,9 @@ bool Config::read_config_file_data(){
                     storedSensor->calPolynomial.push_back(item);
                 }
             } else if (attributeList.at(m).nodeName().toStdString().compare("reciprocol") == 0) {
-				// set rec flag if detected
-				storedSensor->reciprocol = stod(attributeList.at(m).firstChild().nodeValue().toStdString());
-			}
+                // set rec flag if detected
+                storedSensor->reciprocol = stod(attributeList.at(m).firstChild().nodeValue().toStdString());
+            }
         }
         sensorMap.insert(make_pair(storedSensor->sensorIndex,storedSensor));
         cout << "Sensor " << sensorMap[storedSensor->sensorIndex]->sensorName << " inserted into map" << endl;
@@ -467,7 +422,7 @@ bool Config::read_config_file_data(){
         string groupId;
         int sensorId;
         vector<meta *> sensors;
-
+        bool charc = false;
         //get group characteristics: groupId, minrate and maxrate
         QDomNodeList groupXteristics = groupNodes.at(i).childNodes();
         for (int j = 0; j < groupXteristics.size(); j++){
@@ -485,30 +440,26 @@ bool Config::read_config_file_data(){
         cout << "Group Sensors Processed" << endl;
 
         //create group object
-        grp = new Group(sensors,groupId,allResponses,sensors);
+        grp = new Group(sensors,groupId,charc);
         groupMap.insert(make_pair(grp->groupId,grp));
     }
     //****************************************//
     //*****record all sensors to database*****//
     //****************************************//
     // write create universal tables
-        DBTable *dbase = new DBTable("SCADA.db");
-        dbase->create_sec("system_info","id char not null,sensorname char not null,"
-                                 "minthreshold char not null,maxthreshold char not null,"
-                                 "maxresponseid char not null,minresponseid char not null,"
-                                 "calconstant char not null");
+    DBTable *dbase = new DBTable("SCADA.db");
+    dbase->create_sec("system_info","id char not null,sensorname char not null,minimum char not null,maximum char not null,calconstant char not null");
 
-        //****************************************//
-        //*****record all sensors to database*****//
-        //****************************************//
-        dbase->SecNum("system_info");
-        sensorColString = "id,sensorname,minthreshold,maxthreshold,maxresponseid,minresponseid,calconstant";
-        for (auto const& x : sensorMap){
-            sensorRowString = "'" + to_string(x.second->sensorIndex) + "','" + x.second->sensorName + "','" + to_string(x.second->minimum)
-                    + "','" + to_string(x.second->maximum) + "','" + to_string(x.second->maxRxnCode) +
-                    "','" + to_string(x.second->minRxnCode) + "','" + to_string(x.second->calConst) + "'";
-            dbase->add_row_sec("system_info",sensorColString,sensorRowString);
-        }
+    //****************************************//
+    //*****record all sensors to database*****//
+    //****************************************//
+    dbase->SecNum("system_info");
+    sensorColString = "id,sensorname,minimum,maximum,calconstant";
+    for (auto const& x : sensorMap){
+        sensorRowString = "'" + to_string(x.second->sensorIndex) + "','" + x.second->sensorName + "','" + to_string(x.second->minimum)
+                + "','" + to_string(x.second->maximum) + "','" + to_string(x.second->calConst) + "'";
+        dbase->add_row_sec("system_info",sensorColString,sensorRowString);
+    }
     for (int i = 0; i < cansync.size(); i++){
         QDomNodeList sync = cansync.at(i).childNodes();
         canItem thisItem;
@@ -550,7 +501,7 @@ bool Config::read_config_file_data(){
     gpioInterface = new gpio_interface(gpioSensors,i2cSensors,allResponses);
     canInterface = new canbus_interface(canRate, canSensors);
     dataCtrl = new DataControl(gpioInterface,canInterface,usb7204,groupMap,sysStates,FSMs,
-                               systemMode,controlSpecs,responseMap,canSensorGroup,canSyncs,
+                               systemMode,responseMap,canSensorGroup,canSyncs,
                                sensorMap);
     trafficTest = new TrafficTest(canSensorMap,gpioSensors,i2cSensors,usbSensors,canRate,gpioRate,usb7204Rate,dataCtrl);
 
@@ -592,12 +543,12 @@ string Config::get_curr_time(){
  * @brief Function to remove all spaces from a given string
  */
 string Config::removeSpaces(string &str)
-    {
-        int size = str.length();
-        for(int j = 0; j<=size; j++){
-            for(int i = 0; i <=j; i++){
-                if(str[i] == ' ') str.erase(str.begin() + i);
-            }
+{
+    int size = str.length();
+    for(int j = 0; j<=size; j++){
+        for(int i = 0; i <=j; i++){
+            if(str[i] == ' ') str.erase(str.begin() + i);
         }
-        return str;
     }
+    return str;
+}

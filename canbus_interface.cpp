@@ -67,11 +67,11 @@ void canbus_interface::recieve_frame() {
                 uint32_t a = recframe.frameId();
 
                 int64_t data = 0;
-                qDebug() << "CAN address: " << a << ", QByteArray: " << b << endl;
+                //qDebug() << "CAN address: " << a << ", QByteArray: " << b << endl;
                 for (int i = 0; i < b.size(); i++){
                     data = data + ((static_cast<uint64_t>(b[i]) & 0xFF) << ((b.size()-1)*8 - i*8));
                 }
-                qDebug() << "CAN address: " << a << ", QByteArray: " << data << endl;
+                //qDebug() << "CAN address: " << a << ", QByteArray: " << data << endl;
                 QCoreApplication::processEvents();
                 emit process_can_data(a,data);
             }
@@ -102,7 +102,7 @@ void canbus_interface::sendData(int addr, uint64_t data){
         for(int i = sizeof(data)-1; i >= 0; i--){
             byteArr.append(charData[i]);
         }
-        cout << "Send data Address: " << addr  << " Value: " << data << endl;
+        //cout << "Send data Address: " << addr  << " Value: " << data << endl;
         QCanBusFrame * outFrame = new QCanBusFrame;
         outFrame->setFrameId(static_cast<quint32>(addr));
         outFrame->setPayload(byteArr);
@@ -118,6 +118,7 @@ void canbus_interface::sendData(int addr, uint64_t data){
  * @brief canbus_interface::sendDataByte sends specified bit data over CAN to specified address
  * @param addr CAN address
  * @param data : data to be sent
+ * @param byte : number of bytes in packet
  */
 void canbus_interface::sendDataByte(int addr, uint64_t data, int bytes){
     try{
@@ -161,6 +162,9 @@ void canbus_interface::rebootCAN(){
     }
 }
 
+/*
+* allows system to use can packets when recieved
+*/
 void canbus_interface::enableCAN(){
     connect(can_bus, &QCanBusDevice::framesReceived, this, &canbus_interface::recieve_frame);
 }

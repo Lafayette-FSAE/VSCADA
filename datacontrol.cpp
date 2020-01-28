@@ -16,7 +16,7 @@
  */
 DataControl::DataControl(gpio_interface * gpio, canbus_interface * can, usb7402_interface * usb,
                          map<string, Group *> subMap, vector<system_state *> stts, vector<statemachine *> FSM,
-                         int mode, vector<controlSpec *> ctrlSpecs, map<int, response> rspMap,
+                         int mode, map<int, response> rspMap,
                          map<uint32_t, vector<meta *>*> canMap,vector<canItem> cSyncs,
                          map<int, meta*> sensMap){
 
@@ -36,20 +36,20 @@ DataControl::DataControl(gpio_interface * gpio, canbus_interface * can, usb7402_
     responseMap = rspMap;
     subsystemMap = subMap;
     gpioInterface = gpio;
-    controlSpecs = ctrlSpecs;
     systemTimer = new QTime;
     canSensorGroup = canMap;
     sensorMap = sensMap;
     dbase = new DBTable("SCADA.db");
     dbase->create_sec("sensor_data","id char not null,time char not null,"
-                                "sensor_value char not null");
+                                    "sensor_value char not null");
     vector<string> cols;
     cols.push_back("recordindex");
     sessionNumber = 10;
     cout << "Record Index: " << sessionNumber << endl;
     startSystemTimer();
-
-    //signal-slot connections
+    //*****************************************//
+    //********signal-slot connections*********//
+    //***************************************//
     map<string, Group *>::iterator it;
     canSyncs= cSyncs;
     for (uint i = 0; i < canSyncs.size(); i++){
@@ -60,7 +60,7 @@ DataControl::DataControl(gpio_interface * gpio, canbus_interface * can, usb7402_
     }
 
     for ( it = subsystemMap.begin(); it != subsystemMap.end(); it++ ){
-        connect(it->second, SIGNAL(initiateRxn(int)), this,SLOT(executeRxn(int)));
+        //connect(it->second, SIGNAL(initiateRxn(int)), this,SLOT(executeRxn(int)));
         it->second->setSystemTimer(systemTimer);
     }
 
@@ -91,6 +91,9 @@ void DataControl::startSystemTimer(){
     systemTimer->start();
 }
 
+/*
+* Get time since programe started in seconds
+*/
 string DataControl::getProgramTime(){
     int timeElapsed = systemTimer->elapsed();
     double time = static_cast<double>(timeElapsed)/1000;
@@ -101,11 +104,17 @@ string DataControl::getProgramTime(){
     return streamObj.str();
 }
 
+/*
+* self explainatory
+*/
 void DataControl::feedWatchdog(){
     cout << "Feeding watchDog..." << endl;
     system("echo 0 > watchdog.txt");
 }
 
+/*
+* Sends can message when signal from sender is emited
+*/
 void DataControl::canSyncSlot(){
     QObject * tmr = sender();
     for (uint i=0; i< canSyncTimers.size(); i++){
@@ -116,6 +125,9 @@ void DataControl::canSyncSlot(){
     }
 }
 
+/*
+* error control method that is not used anymore
+*/
 void DataControl::receive_sensor_data(meta * sensor){
     try{
         receiveData(sensor);
@@ -147,16 +159,6 @@ void DataControl::receive_can_data(uint32_t addr, uint64_t data){
                         deactivateLog(currState);
                     }
                 }
-
-//                for (uint j = 0; j < currFSM->conditions.size(); j++){
-//                    condition * currCondition = currFSM->conditions.at(j);
-//                    if (currCondition->value != static_cast<int>(isolateData64(static_cast<uint>(currCondition->auxAddress),static_cast<uint>(currCondition->offset),data))){
-//                        currCondition->value = static_cast<int>(isolateData64(static_cast<uint>(currCondition->auxAddress),static_cast<uint>(currCondition->offset),data));
-//                        print = true;
-//                    }
-//                    msg += currCondition->name + "->" + to_string(currCondition->value) ;
-//                }
-
                 if (print){
                     emit pushMessage(msg);
                 }
@@ -178,27 +180,26 @@ void DataControl::receive_can_data(uint32_t addr, uint64_t data){
         if ( canSensorGroup.find(addr) == canSensorGroup.end() ) {
             // not found
         } else {
-          vector<meta *>* specSensors = canSensorGroup.at(addr);
-          for (uint i = 0; i < specSensors->size(); i++){
-              QCoreApplication::processEvents();
-              meta * currSensor = specSensors->at(i);
-              double val;
-              if(currSensor->motor && static_cast<uint16_t>(data>>40)==currSensor->auxAddress){
-                  val=static_cast<uint8_t>(data>>currSensor->offset);
-                  if(int(val)==int(currSensor->val))
-                      print=true;
-                currSensor->val = val;
-              }
-              else if(!currSensor->motor){
-                  val=static_cast<int>(isolateData64(currSensor->auxAddress,currSensor->offset,data));
-                if(int(val)==int(currSensor->val))
-                    print=true;
-                currSensor->val = val;
-              }
-              receiveData(currSensor);
-              print=false;
-              QCoreApplication::processEvents();
-          }
+            vector<meta *>* specSensors = canSensorGroup.at(addr);
+            for (uint i = 0; i < specSensors->size(); i++){
+                QCoreApplication::processEvents();
+                meta * currSensor = specSensors->at(i);
+                double val;
+                //compares sensor auxillary address to first 4 bytes of received packet
+                // if true sets sensor value
+                if(currSensor->motor && static_cast<uint16_t>(data>>40)==currSensor->auxAddress){
+                    val=static_cast<uint8_t>(data>>currSensor->offset);
+                    //if(int(val)==int(currSensor->val))
+                    currSensor->val = val;
+                }
+                else if(!currSensor->motor){//tsi packets that need to be edited
+                    val=static_cast<int>(isolateData64(currSensor->auxAddress,currSensor->offset,data));
+                    //if(int(val)==int(currSensor->val))
+                    currSensor->val = val;
+                }
+                receiveData(currSensor);
+                QCoreApplication::processEvents();
+            }
         }
     } catch (...) {
         cout << "CRITICAL ERROR: Crash on receiving CAN data" << endl;
@@ -244,15 +245,14 @@ void DataControl::receiveData(meta * currSensor){
     calibrateData(currSensor);
     checkThresholds(currSensor);
     emit updateDisplay(currSensor);
-
 }
 /**
  * @brief DataControl::logData - records specified sensor data in the respective database
  * @param currSensor
  */
 void DataControl::logData(meta *currsensor){
-      dbase->add_row_sec("sensor_data","id,time,sensor_value",
-          "'" + to_string(currsensor->sensorIndex) + "',"+"'" + getProgramTime()+"','" + to_string(currsensor->calVal) + currsensor->unit+"'");
+    dbase->add_row_sec("sensor_data","id,time,sensor_value",
+                       "'" + to_string(currsensor->sensorIndex) + "',"+"'" + getProgramTime()+"','" + to_string(currsensor->calVal) + currsensor->unit+"'");
 }
 
 /**
@@ -274,7 +274,7 @@ void DataControl::checkThresholds(meta * sensor){
             msg = sensor->sensorName + " exceeded upper threshold: " + to_string(sensor->maximum);
             emit pushMessage(msg);
             logData(sensor);
-            executeRxn(sensor->maxRxnCode);
+            executeRxn(sensor->respnum);
             pushMessage(msg);
         }
     } else if (sensor->calVal <= sensor->minimum){
@@ -290,14 +290,13 @@ void DataControl::checkThresholds(meta * sensor){
             msg = sensor->sensorName + " below lower threshold: " + to_string(sensor->minimum);
             emit pushMessage(msg);
             logData(sensor);
-            executeRxn(sensor->minRxnCode);
+            executeRxn(sensor->respnum);
             pushMessage(msg);
         }
     } else {
         if (sensor->state != 0){
             sensor->state = 0;
             emit updateEditColor("yellow",sensor);
-            executeRxn(sensor->normRxnCode);
             for (auto const &x : sensor->groups){
                 if (subsystemMap[x]->error) {
                     subsystemMap[x]->checkError();
@@ -324,12 +323,12 @@ void DataControl::calibrateData(meta * currSensor){
         }
         currSensor->calVal = data;
     }
-    if(val+currSensor->trigval<currSensor->calVal||val-currSensor->trigval>currSensor->calVal){
-        currSensor->trigval=currSensor->trigger;
-        logData(currSensor);
-    }else{
-        currSensor->trigval=currSensor->trigval+val-currSensor->calVal;
-    }
+//    if(val+currSensor->trigval<currSensor->calVal||val-currSensor->trigval>currSensor->calVal){
+//        currSensor->trigval=currSensor->trigger;
+//        //logData(currSensor);
+//    }else{
+//        currSensor->trigval=currSensor->trigval+val-currSensor->calVal;
+//    }
 }
 
 
@@ -341,15 +340,16 @@ void DataControl::calibrateData(meta * currSensor){
  */
 int DataControl::change_system_state(system_state * newState){
     try{
-    newState->active = true;
-    string colString = "time,state,message";
-    string rowString = "'" + getProgramTime() + "','" + newState->name + "','Entered State'";
+        newState->active = true;
+        string colString = "time,state,message";
+        string rowString = "'" + getProgramTime() + "','" + newState->name + "','Entered State'";
 
-    //change state of system
-    currState = newState->name;
-    //display change on back and front screen
-    emit activateState(newState);
-    return 1;
+        //change state of system
+        currState = newState->name;
+        //display change on back and front screen
+        emit activateState(newState);
+        pushMessage(rowString);
+        return 1;
     } catch(...){
         return 0;
     }
@@ -363,77 +363,23 @@ void DataControl::deactivateLog(system_state *prevstate){
     prevstate->active = false;
     string colString = "time,state,message";
     string rowString = "'" + getProgramTime() + "','" + prevstate->name + "','Exit State'";
+    pushMessage(rowString);
 }
 
 /**
- * @brief DataControl::executeRxn executes specified response
+ * @brief DataControl::executeRxn executes response of specified index
  * @param responseIndex : response identifier
  */
 void DataControl::executeRxn(int responseIndex){
     //print to logpushMessage
     try{
         response rsp = responseMap[responseIndex];
-        if (rsp.primAddress >= 0){
-            uint64_t fullData = static_cast<uint64_t>(rsp.canValue);
-            emit sendCANData(rsp.primAddress,fullData);
-        }
-        if (rsp.gpioPin >= 0){
-            emit pushGPIOData(rsp.gpioPin,rsp.gpioValue);
+        if (rsp.address >= 0){
+            emit sendCANData(rsp.address,rsp.data);
         }
     } catch (...) {
         pushMessage("CRITICAL ERROR: Crash on executing reaction to data");
     }
-}
-
-/**
- * @brief DataControl::receive_control_val : receives control signal to be sent
- * @param data : data to be sent
- * @param spec : specifications of control signal
- */
-void DataControl::receive_control_val(int data, controlSpec * spec){
-    try{
-        int addr = spec->primAddress;
-        stringstream s;
-        if (addr != 1000){
-            data = static_cast<int>(data*spec->multiplier);
-            uint64_t fullData = static_cast<uint64_t>(data);
-            fullData = LSBto64Spec(static_cast<uint>(spec->auxAddress),static_cast<uint>(spec->offset),fullData);
-            spec->sentVal = spec->sentVal & ~LSBto64Spec(static_cast<uint>(spec->auxAddress),static_cast<uint>(spec->offset),0xFFFFFFFF);
-            spec->sentVal = spec->sentVal | fullData;
-            s << showbase << internal << setfill('0');
-            s << "Data " << std::hex << setw(16) << fullData << " sent to address " << addr;
-            emit sendCANData(addr,spec->sentVal);
-            emit pushMessage(s.str());
-        } else if (spec->usbChannel != -1){
-            float usbData = static_cast<float>(data)*static_cast<float>(spec->multiplier);
-            bool success = true;
-            emit sendToUSB7204(static_cast<uint8_t>(spec->usbChannel),usbData, &success);
-            if (success){
-                s << "Value " << usbData << " written to usb out channel " << spec->usbChannel;
-                emit pushMessage(s.str());
-            }
-        }
-    } catch (...) {
-        pushMessage("CRITICAL ERROR: Crash on receiving control data");
-    }
-}
-
-/**
- * @brief DataControl::get_control_specs : returns all configured control specs
- * @return
- */
-vector<controlSpec *> DataControl::get_control_specs(){
-    return controlSpecs;
-}
-
-/**
- * @brief DataControl::saveSession : saves database fiel in the savedsessions folder
- * @param name : name of saved file
- */
-void DataControl::saveSession(string name){
-    string systemString = "mv ./savedsessions/system.db ./savedsessions/";
-    systemString += name;
-    system(systemString.c_str());
 }
 
 /**
@@ -457,7 +403,7 @@ string DataControl::get_curr_date(){
     return buf;
 }
 
-/**
+/** something stupid
  * @brief Function to remove all spaces from a given string
  */
 string DataControl::removeSpaces(string &str)

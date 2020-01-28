@@ -26,54 +26,52 @@
 
 #define DB_BUF_SIZE 100
 #define CAN_FRAME_LIMIT 20
-
+/* Used when calculating sensors using Polynomials*/
 typedef struct{
     int exponent;
     double coefficient;
 }poly;
 
+/* The base type for all sensors. has multiple variables to cover
+*  different types of sensors
+*/
 typedef struct{
-    int motor;
-    double val;
-    uint offset;
+    uint32_t primAddress;
+    uint auxAddress;// used to locate which sensor is data is for
+    uint offset;// used to tell which bits values come from
+
     int gpioPin;
-    int checkRate;
-    double calVal;
-    int maxRxnCode;
-    int minRxnCode;
-    uint auxAddress;
-    int i2cAddress;
+    int motor;//used to differ tsi and Controller pckt unneeded with standardization
+    int checkRate;//sensor checkrate
+    int state; // used when sensor exceeds max or min
+    int i2cAddress;// i^2c controls
     std::vector<uint32_t> i2cConfigs;
     uint8_t i2cReadPointer;
     int i2cReadDelay;
     int i2cDataField;
     int usbChannel;
-    double minimum;
+    double minimum;//min and max sensor values
     double maximum;
+    int respnum;
     double calConst;
     int sensorIndex;
-    int normRxnCode;
-    int trigger;
+    int trigger;// value change in sensor that signifies it needs to be stored
     double trigval;
     int reciprocol;	// add rec flag
-    uint32_t primAddress;
-    uint8_t precision;
+    uint8_t precision;// decimal point
     double calMultiplier;
-    int state;
+    double val;// value sensor holds before calculating
+    double calVal;// value sensor holds after calculating
     std::vector<poly> calPolynomial;
     std::vector<std::string> groups;
     std::string unit;
     std::string sensorName;
-    void updateVal(int newVal)
-    {
-        val = newVal;
-    }
 
     void calData(){
         calVal = static_cast<double>(val)*calMultiplier + calConst;
     }
-	
-	// add method
+
+	// added method by tony used in tsi cal
 	void calRec(){
 		if (reciprocol == 1) {
 			if (calVal != 0) {
@@ -86,39 +84,9 @@ typedef struct{
     }
 }meta;
 
-typedef struct{
-    uint offset;
-    int gpiopin;
-    bool slider;
-    bool button;
-    int pressVal;
-    int maxslider;
-    int minslider;
-    int releaseVal;
-    int usbChannel;
-    uint auxAddress;
-    bool textField;
-    uint primAddress;
-    uint64_t sentVal;
-    std::string name;
-    std::string type;
-    double multiplier;
-}controlSpec;
-
-typedef struct{
-    int defVal;
-    uint offset;
-    int gpioPin;
-    int gpioPair;
-    int canValue;
-    int gpioValue;
-    uint auxAddress;
-    std::string msg;
-    uint primAddress;
-    int responseIndex;
-    int displayTarget;
-}response;
-
+/*
+* pretty self explainitory would benifit from being changed
+*/
 typedef struct{
     int value;
     uint offset;
@@ -128,22 +96,21 @@ typedef struct{
     std::string name;
 }system_state;
 
-//typedef struct{
-//    std::string name;
-//    uint auxAddress;
-//    uint offset;
-//    int value;
-//}condition;
 
+/*
+* the system's statemachine
+*/
 typedef struct{
     uint offset;
     uint auxAddress;
     uint primAddress;
     std::string name;
     std::vector<system_state *> states;
-    //std::vector<condition *> conditions;
 }statemachine;
 
+/*
+* Used to send can messages written in the config file
+*/
 typedef struct{
     int address;
     uint64_t data;
@@ -152,38 +119,19 @@ typedef struct{
     int rate_ms;
 }canItem;
 
-typedef struct{
-    int pin;
-    int value;
-    int mode;
-    int rate_ms;
-}gpioItem;
-
-typedef struct{
-    int address;
-    int data;
-    int rate_ms;
-}i2cItem;
-
-//typedef struct{
-//    std::vector<canItem> bootCanCmds;
-//    std::vector<uint32_t> bootI2cCmds;
-//    std::vector<gpioItem> bootGPIOCmds;
-//} bootloader;
-
-//typedef struct{
-//    int id;
-//    int period;
-//    std::vector<int> sensorIds;
-//    int triggerSensor;
-//    std::string triggerFSM;
-//    std::string triggerState;
-//    int startVal;
-//    int stopVal;
-//    std::string savePath;
-//    std::string prefix;
-//    bool active;
-//    void * timer;
-//} recordwindow;
+/*
+* how scada reacts to different situations
+*/
+struct response{
+  int responseIndex;
+  std::string state;
+  std::vector<int> sensors;
+  std::string msg;
+  uint64_t data;
+  int gpioValue;
+  int address;
+  int gpioPin;
+  int offset;
+};
 
 #endif // TYPEDEFS_H

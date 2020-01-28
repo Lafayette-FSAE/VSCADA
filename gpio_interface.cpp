@@ -226,7 +226,7 @@ void gpio_interface::gpioCheckTasks(){
         if (i2cRead(i2cSensors.at(i)) == 0){
             emit sensorValueChanged(i2cSensors.at(i));
         } else {
-            std::cout << "Sensor read for i2c sensor " << i2cSensors.at(i)->sensorName << " failed" << endl;
+            //std::cout << "Sensor read for i2c sensor " << i2cSensors.at(i)->sensorName << " failed" << endl;
         }
     }
 }
@@ -275,7 +275,7 @@ int gpio_interface::i2cRead(meta * sensor){
     char pointerBuf[1] = {0};
     pointerBuf[0] = static_cast<char>(sensor->i2cReadPointer);
     if (write(fd,pointerBuf,1) != 1){
-        std::cout << "Writing i2c pointer for " << sensor->sensorName << " failed" << endl;
+        //std::cout << "Writing i2c pointer for " << sensor->sensorName << " failed" << endl;
         return -1;
     }
 
@@ -284,7 +284,7 @@ int gpio_interface::i2cRead(meta * sensor){
     //read from i2c device
     char readBuf[2] = {0};
     if (read(fd, readBuf, 2) != 2){
-        std::cout << "i2c read for " << sensor->sensorName << " failed" << endl;
+        //std::cout << "i2c read for " << sensor->sensorName << " failed" << endl;
         return -1;
     } else {
         uint16_t result = static_cast<uint16_t>(readBuf[0]);

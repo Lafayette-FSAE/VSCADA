@@ -14,6 +14,7 @@
 #include <mutex>
 #include "typedefs.h"
 #include "math.h"
+#include "dbtable.h"
 
 class DataMonitor;
 
@@ -23,51 +24,26 @@ class Group : public QObject
 {
     Q_OBJECT
 public:
-    Group(vector<meta *> sensors, string id, vector<response> respVector, vector<meta *> mainMeta);    //class object destructor
+    Group(vector<meta *> sensors, string id, bool charc);    //class object destructor
     virtual ~Group();                     //class object destructor
 
-    void stop();                                    //stops data collection
-    void start();                                   //starts data collection
-    vector<int> get_data();                         //initializes GLV data vector
+    DBTable *dbase;
     string get_curr_time();                         //get curent time
     void set_rate(int newRate);                     //sets rate at which data is checked
     void logMsg(string msg);                        //enqueue message for display
     string getProgramTime();
     vector<meta *> get_mainsensors();
-    vector<meta *> get_metadata();                  //retrieves a configured list of sensors
     void setMonitor(DataMonitor * mtr);             //sets monitor object
     void setSystemTimer(QTime * timer);
     void checkError();
 
-    mutex procSensorMutex;
+    bool isCharcterised;
     QTimer * timer;                                 //timer to implement sampling frequency
-    DataMonitor * monitor;                          //pointer to a datamonitor object
-
-    QThread * thread;
-    QTimer * checkTmr;                              //timer placeholder for checking update frequencies
-    QLineEdit * lineEdit;                           //lineEdif placeholder for sensor-specific line edits
     QTime * systemTimer;
-
-    int checkRate = 0;                              //rate for checking for sensor updates
+    int checkRate = 1000;                              //rate for checking for sensor updates
     string groupId;                             //identifies subsystem by name
-
-    vector<canItem> broadCastVector;
-
-    vector<meta *> sensorMeta;                      //cooling sensor metadata
     vector<meta *> mainSensorVector;
-    vector<QLineEdit *> edits;                      //lineEdits for displaying data
-    vector<QLineEdit *> controlEdits;
-    vector<QTimer *> editTimers;                    //stores checkTimers
-    vector<response> responseVector;                //stores configured responses
-
-    QQueue<meta *> sensorQueue;
-    QQueue<string> * msgQueue;                      //queue to store messages for display
     bool error = false;
-    QQueue<response> * respCANQueue;                //queue for CAN responses
-    QQueue<response> * respGPIOQueue;               //queue for gpio responses
-
-    bool running = true;                            //to control running of collection thread
-    vector<int> rawData;                            //cooling sensor data
 
 signals:                           //execute response to CAN
     void pushI2cData(uint32_t value);
@@ -78,6 +54,11 @@ signals:                           //execute response to CAN
     void sendCANData(int address, uint64_t data, int size);
     void updateEditColor(string color, meta *sensor);
     void updateHealth();
+
+public slots:
+    void createGroupTable();
+    void charcGroup();
+
 };
 
 #endif // SUBSYSTEMTHREAD_H

@@ -1,7 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-
+/*
+* the UI for the system
+*/
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -9,12 +11,13 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     //initialize objects
-    central = new QWidget();
-    mainLayout = new QVBoxLayout();
-    conf = new Config();
+    central = new QWidget();//first tab on the SCADA
+    mainLayout = new QVBoxLayout();// the layout for the tab
+    conf = new Config();// this contains everything else the software does
     timer = new QTimer();
-    dbtool=new DBTable("SCADA.db");
-    dbtool->create_sec("logs","id char not null,log string not null");
+    dbtool=new DBTable("SCADA.db");//data base for the system
+    dbtool->create_sec("logs","id char not null,log string not null");//logs table
+    dbtool->SecNum("logs");
     maxSensorRow = 0;
 
     mainLayout->setSizeConstraint(QLayout::SetFixedSize);
@@ -23,14 +26,15 @@ MainWindow::MainWindow(QWidget *parent) :
     cout << "Done configuring " << endl;
 
     // set window dimensioning parameters
-    QRect rec = QApplication::desktop()->screenGeometry();
-    int height=rec.height();
-    int width=rec.width();
+    QRect rect = QApplication::desktop()->screenGeometry();
+    //cout << "width is " + to_string(rect.width())+" height is " + to_string(rect.height()) <<endl;
+    int height=rect.height();
+    int width=rect.width();
     unitWidth=width/20;
     unitHeight=height/20;
     stringSize = unitWidth/10;
     editFont = QString::number(stringSize*2);
-    QRect rect = QApplication::desktop()->screenGeometry();
+    //QRect rect = QApplication::desktop()->screenGeometry();
 
     //****************************************************//
     //              CREATE LOG TAB                        //
@@ -58,7 +62,7 @@ MainWindow::MainWindow(QWidget *parent) :
     logMessage(startMessage);
     //****************************************************//
 
-    // create tabs
+    // adds tabs
     QScrollArea *scrollArea = new QScrollArea();
     tabs = new QTabWidget;
     tabs->setTabsClosable(true);
@@ -74,7 +78,6 @@ MainWindow::MainWindow(QWidget *parent) :
     scrollArea->setWidget(tabs);
 
     connect(tabs, SIGNAL(tabCloseRequested(int)), this, SLOT(closeTab(int)));
-    //connect(tabs, SIGNAL(currentChanged(int)), this, SLOT(updateTab(int)));
 
     // create timers to identify sensor timeouts
     for (auto const& x : conf->sensorMap){
@@ -92,11 +95,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     this->setCentralWidget(scrollArea);
 
-    update();
+    update();// makes the central tab
 
     // connect signals to slots
     for (auto const& x : conf->groupMap){
         connect(x.second, SIGNAL(updateHealth()), this, SLOT(updateHealth()));
+        connect(x.second,SIGNAL(pushMessage(string)),this,SLOT(receiveMsg(string)));
     }
     connect(conf->dataCtrl, SIGNAL(updateDisplay(meta *)), this, SLOT(updateEdits(meta *)));
     connect(conf->dataCtrl, SIGNAL(updateEditColor(string, meta *)), this, SLOT(changeEditColor(string, meta *)));
@@ -107,7 +111,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(conf->dataCtrl, SIGNAL(pushMessage(string)), this, SLOT(receiveMsg(string)));
     connect(conf->usb7204, SIGNAL(pushMessage(string)), this, SLOT(receiveMsg(string)));
     connect(timer, SIGNAL(timeout()), this, SLOT(updateClock()));
-    connect(this, SIGNAL(sendControlValue(int, controlSpec *)), conf->dataCtrl, SLOT(receive_control_val(int, controlSpec *)));
 
     // display config errors
     for (uint i = 0; i < conf->configErrors.size(); i++){
@@ -136,6 +139,10 @@ MainWindow::~MainWindow(){
     delete ui;
 }
 
+/*
+* So this makes the displays that shows all the data the system collects
+* any changes made here change the dino room display first tab
+*/
 void MainWindow::update(){
 
     QRect rec = QApplication::desktop()->screenGeometry();
@@ -150,13 +157,21 @@ void MainWindow::update(){
     }
 
     QGridLayout * groupSectionLayout = new QGridLayout;
+    QLabel * label = new QLabel;
+    label->setText(QString::fromStdString("Systems"));
+    label->setFixedWidth(unitWidth*2);
+    label->setFixedHeight(static_cast<int>(unitHeight*0.8));
+    QString LabelFont = QString::number(stringSize*2);
+    label->setStyleSheet("font:"+LabelFont+"pt;");
+    groupSectionLayout->addWidget(label,fieldRowCount,fieldColCount);
+    fieldRowCount=2;
     for (auto const &x: conf->groupMap){
         Group * currGrp = x.second;
         vector<meta *> grpMeta = currGrp->get_mainsensors();
 
         QPushButton * headerLabel = new QPushButton;
         headerLabel->setFixedWidth(static_cast<int>(unitWidth*1.5));
-        headerLabel->setFixedHeight(unitHeight);
+        headerLabel->setFixedHeight(static_cast<int>(unitHeight*0.8));
         headerLabel->setText(QString::fromStdString(currGrp->groupId));
         QString  grpLabelFont = QString::number(stringSize*3);
         headerLabel->setStyleSheet("font:"+grpLabelFont+"pt;");
@@ -164,110 +179,61 @@ void MainWindow::update(){
         healthButtons.insert(make_pair(currGrp->groupId,headerLabel));
         connect(headerLabel, SIGNAL(clicked()), this, SLOT(detailButtonPushed()));
         detailButtons.insert(make_pair(currGrp->groupId,headerLabel));
-        //groupSectionLayout->addWidget(headerLabel,fieldRowCount,fieldColCount,1,2,Qt::AlignCenter);
-        //fieldColCount=fieldColCount+2;
-}
-    //fieldColCount=0;
+        if (fieldColCount != 0) groupSectionLayout->addWidget(headerLabel,fieldRowCount,fieldColCount-1,1,4);
+        else groupSectionLayout->addWidget(headerLabel,fieldRowCount,fieldColCount,1,4);
+        fieldColCount=fieldColCount+3;
+    }
+    fieldRowCount=fieldRowCount+2;
+    fieldColCount=0;
+    QLabel * label2 = new QLabel;
+    label2->setText(QString::fromStdString("Sensors"));
+    label2->setFixedWidth(unitWidth*2);
+    label2->setFixedHeight(static_cast<int>(unitHeight*0.8));
+    QString LabelFont2 = QString::number(stringSize*2);
+    label2->setStyleSheet("font:"+LabelFont2+"pt;");
+    groupSectionLayout->addWidget(label2,fieldRowCount,fieldColCount);
+    fieldRowCount=fieldRowCount+2;
     int j=0;
     if(conf->sensorMap.size()>0){
         for (auto const &x: conf->sensorMap){
-                j++;
-                QLabel * label = new QLabel;
-                label->setText(QString::fromStdString(x.second->sensorName));
-                label->setFixedWidth(unitWidth*2);
-                label->setFixedHeight(static_cast<int>(unitHeight*0.8));
-                QString LabelFont = QString::number(stringSize*2);
-                label->setStyleSheet("font:"+LabelFont+"pt;");
-                groupSectionLayout->addWidget(label,fieldRowCount,fieldColCount);
+            j++;
+            QLabel * label = new QLabel;
+            label->setText(QString::fromStdString(x.second->sensorName));
+            label->setFixedWidth(unitWidth*2);
+            label->setFixedHeight(static_cast<int>(unitHeight*0.8));
+            QString LabelFont = QString::number(stringSize*2);
+            label->setStyleSheet("font:"+LabelFont+"pt;");
+            groupSectionLayout->addWidget(label,fieldRowCount,fieldColCount);
 
-                QLineEdit * edit = edits[x.second->sensorIndex];
-                edit->setStyleSheet("font:"+editFont+"pt;");
-                edit->setFixedWidth(static_cast<int>(unitWidth*2.5));
-                edit->setFixedHeight(static_cast<int>(unitHeight*0.8));
-                edit->setText("--");
-                groupSectionLayout->addWidget(edit,fieldRowCount,fieldColCount+1);
-                fieldRowCount++;
-                if(j % int((conf->sensorMap.size()+2)/4)==0|conf->sensorMap.size()==j){
-                    fieldRowCount = maxSensorRow + 2;
-                    QFrame * hBorder1 = new QFrame(this);
-                    hBorder1->setLineWidth(2);
-                    hBorder1->setMidLineWidth(1);
-                    hBorder1->setFrameShape(QFrame::HLine);
-                    hBorder1->setFrameShadow(QFrame::Raised);
-                    if (fieldColCount != 0) groupSectionLayout->addWidget(hBorder1,fieldRowCount,fieldColCount-1,1,4);
-                    else groupSectionLayout->addWidget(hBorder1,fieldRowCount,fieldColCount,1,4);
-                    fieldRowCount = 0;
-                    fieldColCount = fieldColCount + 2;
+            QLineEdit * edit = edits[x.second->sensorIndex];
+            edit->setStyleSheet("font:"+editFont+"pt;");
+            edit->setFixedWidth(static_cast<int>(unitWidth*2.5));
+            edit->setFixedHeight(static_cast<int>(unitHeight*0.8));
+            edit->setText("--");
+            groupSectionLayout->addWidget(edit,fieldRowCount,fieldColCount+1);
+            fieldRowCount++;
+            if(j % int((conf->sensorMap.size()+2)/3)==0|conf->sensorMap.size()==j){
+                fieldRowCount = maxSensorRow + 3;
+                QFrame * hBorder1 = new QFrame(this);
+                hBorder1->setLineWidth(2);
+                hBorder1->setMidLineWidth(1);
+                hBorder1->setFrameShape(QFrame::HLine);
+                hBorder1->setFrameShadow(QFrame::Raised);
+                if (fieldColCount != 0) groupSectionLayout->addWidget(hBorder1,fieldRowCount,fieldColCount-1,1,4);
+                else groupSectionLayout->addWidget(hBorder1,fieldRowCount,fieldColCount,1,4);
+                fieldRowCount = 6;
+                fieldColCount = fieldColCount + 2;
 
-                    QFrame * vBorder = new QFrame(this);
-                    vBorder->setLineWidth(2);
-                    vBorder->setMidLineWidth(1);
-                    vBorder->setFrameShape(QFrame::VLine);
-                    vBorder->setFrameShadow(QFrame::Raised);
-                    groupSectionLayout->addWidget(vBorder,fieldRowCount,fieldColCount,maxSensorRow+3,1);
-                    fieldColCount++;
-                }
+                QFrame * vBorder = new QFrame(this);
+                vBorder->setLineWidth(2);
+                vBorder->setMidLineWidth(1);
+                vBorder->setFrameShape(QFrame::VLine);
+                vBorder->setFrameShadow(QFrame::Raised);
+                groupSectionLayout->addWidget(vBorder,fieldRowCount,fieldColCount,maxSensorRow+3,1);
+                fieldColCount++;
+            }
         }
     }
-    //    for (auto const &x: conf->groupMap){
-    //        Group * currGrp = x.second;
-    //        vector<meta *> grpMeta = currGrp->get_mainsensors();
-
-    //        QPushButton * headerLabel = new QPushButton;
-    //        headerLabel->setFixedWidth(static_cast<int>(unitWidth*1.5));
-    //        headerLabel->setFixedHeight(unitHeight);
-    //        headerLabel->setText(QString::fromStdString(currGrp->groupId));
-    //        QString  grpLabelFont = QString::number(stringSize*3);
-    //        headerLabel->setStyleSheet("font:"+grpLabelFont+"pt;");
-    //        headerLabel->setFixedWidth(400);
-    //        healthButtons.insert(make_pair(currGrp->groupId,headerLabel));
-    //        connect(headerLabel, SIGNAL(clicked()), this, SLOT(detailButtonPushed()));
-    //        detailButtons.insert(make_pair(currGrp->groupId,headerLabel));
-    //        groupSectionLayout->addWidget(headerLabel,fieldRowCount,fieldColCount,1,2,Qt::AlignCenter);
-    //        fieldRowCount++;
-
-    //        if(grpMeta.size() > 0){
-    //            for (uint j = 0; j < grpMeta.size(); j++){
-    //                QLabel * label = new QLabel;
-    //                label->setText(QString::fromStdString(grpMeta.at(j)->sensorName));
-    //                label->setFixedWidth(unitWidth*2);
-    //                label->setFixedHeight(static_cast<int>(unitHeight*0.8));
-    //                QString LabelFont = QString::number(stringSize*2);
-    //                label->setStyleSheet("font:"+LabelFont+"pt;");
-    //                groupSectionLayout->addWidget(label,fieldRowCount,fieldColCount);
-
-
-    //                QLineEdit * edit = edits[grpMeta.at(j)->sensorIndex];
-    //                edit->setStyleSheet("font:"+editFont+"pt;");
-    //                edit->setFixedWidth(static_cast<int>(unitWidth*2.5));
-    //                edit->setFixedHeight(static_cast<int>(unitHeight*0.8));
-    //                edit->setText("--");
-    //                groupSectionLayout->addWidget(edit,fieldRowCount,fieldColCount+1);
-    //                fieldRowCount++;
-    //            }
-    //        }
-
-    //        fieldRowCount = maxSensorRow + 2;
-
-    //        QFrame * hBorder1 = new QFrame(this);
-    //        hBorder1->setLineWidth(2);
-    //        hBorder1->setMidLineWidth(1);
-    //        hBorder1->setFrameShape(QFrame::HLine);
-    //        hBorder1->setFrameShadow(QFrame::Raised);
-    //        if (fieldColCount != 0) groupSectionLayout->addWidget(hBorder1,fieldRowCount,fieldColCount-1,1,4);
-    //        else groupSectionLayout->addWidget(hBorder1,fieldRowCount,fieldColCount,1,4);
-    //        fieldRowCount++;
-    //        fieldRowCount = 0;
-    //        fieldColCount = fieldColCount + 2;
-
-    //        QFrame * vBorder = new QFrame(this);
-    //        vBorder->setLineWidth(2);
-    //        vBorder->setMidLineWidth(1);
-    //        vBorder->setFrameShape(QFrame::VLine);
-    //        vBorder->setFrameShadow(QFrame::Raised);
-    //        groupSectionLayout->addWidget(vBorder,fieldRowCount,fieldColCount,maxSensorRow+3,1);
-    //        fieldColCount++;
-    //    }
 
     QWidget * groupWidget = new QWidget;
     groupWidget->setLayout(groupSectionLayout);
@@ -353,12 +319,6 @@ void MainWindow::update(){
     QHBoxLayout * statusBtnsLayout = new QHBoxLayout;
     statusBtnsLayout->setAlignment(Qt::AlignCenter);
 
-    //    QLabel * statusLabel = new QLabel;
-    //    statusLabel->setText("STATUSES: ");
-    //    statusLabel->setStyleSheet("font:"+labelFont+"pt;");
-    //    statusLabel->setFixedWidth(statusLabel->width());
-    //    statusButtonLayout->addWidget(statusLabel,0,0,Qt::AlignLeft);
-
     for(uint s = 0; s < conf->sysStates.size(); s++){
         if (s != 0){
             QFrame * stateFrame = new QFrame(this);
@@ -368,13 +328,6 @@ void MainWindow::update(){
             stateFrame->setFrameShadow(QFrame::Raised);
             statusBtnsLayout->addWidget(stateFrame, Qt::AlignCenter);
         }
-
-        //        QFrame * stateFrame = new QFrame(this);
-        //        stateFrame->setLineWidth(2);
-        //        stateFrame->setMidLineWidth(1);
-        //        stateFrame->setFrameShape(QFrame::VLine);
-        //        stateFrame->setFrameShadow(QFrame::Raised);
-        //        statusBtnsLayout->addWidget(stateFrame, Qt::AlignCenter);
 
         stateButton = new QPushButton();
         stateButton->setText(QString::fromStdString(conf->sysStates.at(s)->name));
@@ -399,80 +352,6 @@ void MainWindow::update(){
     statusBorder->setFrameShadow(QFrame::Raised);
     mainLayout->addWidget(statusBorder);
 
-    if (conf->controlSpecs.size() > 0){
-        controlsLayout = new QHBoxLayout;
-        currLabel = new QLabel("CONTROLS: ");
-        currLabel->setStyleSheet("font:"+labelFont+"pt;");
-        controlsLayout->addWidget(currLabel,Qt::AlignLeft);
-
-        for (uint i = 0; i < conf->controlSpecs.size(); i++){
-            controlSpec * currSpec = conf->controlSpecs.at(i);
-            if (currSpec->slider){
-                QVBoxLayout * sliderLayout = new QVBoxLayout;
-                currLabel = new QLabel(QString::fromStdString(currSpec->name));
-                currLabel->setAlignment(Qt::AlignCenter);
-                currLabel->setStyleSheet("font:"+labelFont+"pt;");
-                sliderLayout->addWidget(currLabel);
-                sliderControl = new QSlider(Qt::Horizontal);
-                sliderControl->setRange(currSpec->minslider,currSpec->maxslider);
-                QPalette palSlider = sliderControl->palette();
-                sliderControl->setMaximumWidth(unitWidth*5);
-                sliderLayout->addWidget(sliderControl);
-                sliderLayout->setAlignment(Qt::AlignCenter);
-                controlsLayout->addLayout(sliderLayout,Qt::AlignCenter);
-                controlSliders.push_back(sliderControl);
-                sliderCtrls.push_back(currSpec);
-                connect(sliderControl, SIGNAL(sliderReleased()), this, SLOT(sliderValChanged()));
-                connect(sliderControl, SIGNAL(actionTriggered(int)), this, SLOT(sliderValChanged(int)));
-            }
-            if (currSpec->button){
-                buttonControl =new QPushButton();
-                buttonControl->setText(QString::fromStdString(currSpec->name));
-                QPalette palindi = buttonControl->palette();
-                palindi.setColor(QPalette::Button, QColor(142,45,197).darker());
-                buttonControl->setPalette(palindi);
-                buttonControl->setAutoFillBackground(true);
-                buttonControl->setStyleSheet("font:"+butLabelFont+"pt;");
-                buttonControl->setFixedWidth(static_cast<int>(unitWidth));
-                buttonControl->setFixedHeight(static_cast<int>(unitHeight*1.5));
-                controlButtons.push_back(buttonControl);
-                buttonCtrls.push_back(currSpec);
-                controlsLayout->addWidget(buttonControl,Qt::AlignCenter);
-                connect(buttonControl, SIGNAL(pressed()), this, SLOT(ctrlButtonPressed()));
-                connect(buttonControl, SIGNAL(released()), this, SLOT(ctrlButtonReleased()));
-            }
-            if (currSpec->textField){
-                QVBoxLayout * fieldLayout = new QVBoxLayout;
-                currLabel = new QLabel(QString::fromStdString(currSpec->name));
-                currLabel->setAlignment(Qt::AlignCenter);
-                currLabel->setStyleSheet("font:"+labelFont+"pt;");
-                fieldLayout->addWidget(currLabel);
-                editControl = new QLineEdit;
-                editControl->setValidator( new QIntValidator(0, 999999999, this) );
-                editControl->setMaximumWidth(unitWidth*5);
-                editControl->setStyleSheet("font:"+labelFont+"pt;");
-                thisEdit=editControl;
-
-
-                fieldLayout->addWidget(editControl);
-
-                fieldLayout->setAlignment(Qt::AlignCenter);
-                controlEdits.push_back(editControl);
-                editCtrls.push_back(currSpec);
-                controlsLayout->addLayout(fieldLayout,Qt::AlignCenter);
-                connect(editControl, SIGNAL(returnPressed()), this, SLOT(editUpdated()));
-            }
-        }
-        mainLayout->addLayout(controlsLayout);
-
-        QFrame * controlBorder = new QFrame(this);
-        controlBorder->setLineWidth(2);
-        controlBorder->setMidLineWidth(1);
-        controlBorder->setFrameShape(QFrame::HLine);
-        controlBorder->setFrameShadow(QFrame::Raised);
-        mainLayout->addWidget(controlBorder);
-    }
-
     QString footerFont = QString::fromStdString(to_string(stringSize*3));
 
     QLabel * modeLabel = new QLabel;
@@ -490,6 +369,9 @@ void MainWindow::update(){
     mainLayout->addWidget(clock, Qt::AlignCenter);
 }
 
+/*
+*the clock seen on the display
+*/
 void MainWindow::updateClock(){
     int time = conf->dataCtrl->systemTimer->elapsed();
     time = time/1000;
@@ -509,58 +391,68 @@ void MainWindow::updateClock(){
     clock->setText(QString::fromStdString(updatedTime));
 }
 
-void MainWindow::sliderValChanged(){
-    QObject* obj = sender();
-    for (uint i = 0; i < controlSliders.size(); i++){
-        if (obj == controlSliders.at(i)){
-            int value = controlSliders.at(i)->value();
-            emit sendControlValue(value, sliderCtrls.at(i));
-        }
-    }
-}
+///*
+//* still trying to figure out this slider ones purposes
+//*/
+//void MainWindow::sliderValChanged(){
+//    QObject* obj = sender();
+//    for (uint i = 0; i < controlSliders.size(); i++){
+//        if (obj == controlSliders.at(i)){
+//            int value = controlSliders.at(i)->value();
+//            emit sendControlValue(value, sliderCtrls.at(i));
+//        }
+//    }
+//}
 
-void MainWindow::sliderValChanged(int val){
-    if (val == QAbstractSlider::SliderPageStepAdd || val == QAbstractSlider::SliderPageStepSub){
-        QObject* obj = sender();
-        for (uint i = 0; i < controlSliders.size(); i++){
-            if (obj == controlSliders.at(i)){
-                val = controlSliders.at(i)->value();
-                emit sendControlValue(val, sliderCtrls.at(i));
-            }
+///*
+//*
+//*/
+//void MainWindow::sliderValChanged(int val){
+//    if (val == QAbstractSlider::SliderPageStepAdd || val == QAbstractSlider::SliderPageStepSub){
+//        QObject* obj = sender();
+//        for (uint i = 0; i < controlSliders.size(); i++){
+//            if (obj == controlSliders.at(i)){
+//                val = controlSliders.at(i)->value();
+//                emit sendControlValue(val, sliderCtrls.at(i));
+//            }
 
-        }
-    }
-}
+//        }
+//    }
+//}
 
-void MainWindow::ctrlButtonPressed(){
-    QObject* obj = sender();
-    for (uint i = 0; i < controlButtons.size(); i++){
-        if (obj == controlButtons.at(i)){
-            emit sendControlValue(buttonCtrls.at(i)->pressVal, buttonCtrls.at(i));
-        }
-    }
-}
+///*
+//* there are a few of the ones below that are unused but have to be edited
+//* out in other moudules
+//*/
+//void MainWindow::ctrlButtonPressed(){
+//    QObject* obj = sender();
+//    for (uint i = 0; i < controlButtons.size(); i++){
+//        if (obj == controlButtons.at(i)){
+//            emit sendControlValue(buttonCtrls.at(i)->pressVal, buttonCtrls.at(i));
+//        }
+//    }
+//}
 
-void MainWindow::ctrlButtonReleased(){
-    QObject* obj = sender();
-    for (uint i = 0; i < controlButtons.size(); i++){
-        if (obj == controlButtons.at(i)){
-            emit sendControlValue(buttonCtrls.at(i)->releaseVal, buttonCtrls.at(i));
-        }
-    }
-}
+//void MainWindow::ctrlButtonReleased(){
+//    QObject* obj = sender();
+//    for (uint i = 0; i < controlButtons.size(); i++){
+//        if (obj == controlButtons.at(i)){
+//            emit sendControlValue(buttonCtrls.at(i)->releaseVal, buttonCtrls.at(i));
+//        }
+//    }
+//}
 
-void MainWindow::editUpdated(){
-    QObject* obj = sender();
-    for (uint i = 0; i < controlEdits.size(); i++){
-        if (obj == controlEdits.at(i)){
-            QLineEdit * edit = static_cast<QLineEdit *>(obj);
-            int val = stoi(edit->text().toStdString());
-            emit sendControlValue(val, editCtrls.at(i));
-            edit->setText("");
-        }
-    }
-}
+//void MainWindow::editUpdated(){
+//    QObject* obj = sender();
+//    for (uint i = 0; i < controlEdits.size(); i++){
+//        if (obj == controlEdits.at(i)){
+//            QLineEdit * edit = static_cast<QLineEdit *>(obj);
+//            int val = stoi(edit->text().toStdString());
+//            emit sendControlValue(val, editCtrls.at(i));
+//            edit->setText("");
+//        }
+//    }
+//}
 
 void MainWindow::activateStateMW(system_state * nextState){
     for(uint i = 0; i < stateButtons.size(); i++){
@@ -581,18 +473,24 @@ void MainWindow::deactivateStateMW(system_state * prevState){
         }
     }
 }
-
+/*
+* changes the text in a the specified textbox
+*/
 void MainWindow::drawEdit(QLineEdit * edit,QString dataDisplay ){
     edit= new QLineEdit();
     edit->setText(dataDisplay);
     edit->setMinimumWidth(unitWidth);
     edit->setStyleSheet("font:24pt;");
 }
-
+/*
+* slot used to log all sub module messages
+*/
 void MainWindow::receiveMsg(string msg){
     logMessage(QString::fromStdString(msg));
 }
-
+/*
+* used to show all sensors under group when tag is pushed
+*/
 void MainWindow::detailButtonPushed(){
     QObject* obj = sender();
     for (auto const &x: conf->groupMap){
@@ -600,10 +498,15 @@ void MainWindow::detailButtonPushed(){
     }
 }
 
+/*
+* slot used to log all sub module messages
+*yes its the same as the one above
+*/
 void MainWindow::receiveErrMsg(string msg){
     QString str = QString::fromStdString(msg);
     logMessage(QString::fromStdString(msg));
 }
+
 
 void MainWindow::updateHealth(){
     for (auto const &x: conf->groupMap){
@@ -635,7 +538,9 @@ void MainWindow::updateFSM_MW(statemachine * currFSM){
         }
     }
 }
-
+/*
+* logs messages and the time it was recieved
+*/
 void MainWindow::logMessage(QString eMessage){
     if (message->count() >= 500) message->takeItem(0);
     string time = conf->dataCtrl->getProgramTime();
@@ -646,6 +551,9 @@ void MainWindow::logMessage(QString eMessage){
     dbtool->add_row_sec("logs","id,log",std::to_string(message->count())+",\" " +msg +" \"");
 }
 
+/*
+* opens a new tab for specified groups
+*/
 void MainWindow::openDetailWindow(Group * grp){
     detailWindow= new detailPage();
     detailWindow->setConfObject(conf);
@@ -654,6 +562,10 @@ void MainWindow::openDetailWindow(Group * grp){
     tabs->setCurrentIndex(tabs->count() - 1);
 }
 
+/*
+* slot that closes tab on user input if its the first
+* tab closes program
+*/
 void MainWindow::closeTab(int tabId){
     if ((tabId != 0) && (tabId != 1)) tabs->removeTab(tabId);
     else if (tabId == 0) shutdownSystem();
@@ -727,6 +639,9 @@ int MainWindow::active_dialog(string msg){
     }
 }
 
+/*
+* shutdown the system after prompting the user
+*/
 void MainWindow::shutdownSystem(){
     int confirmation = active_dialog("Are you sure you want to exit?");
     if (confirmation == QDialog::Accepted){
@@ -765,6 +680,10 @@ void MainWindow::checkTimeout(){
     }
 }
 
+/*
+* changes the color of sensors
+*used to show overheating or major cooling
+*/
 void MainWindow::changeEditColor(string color, meta * sensor){
     if(color.compare("red") == 0){
         edits[sensor->sensorIndex]->setStyleSheet("color: #FF0000; font:"+editFont+"pt;");

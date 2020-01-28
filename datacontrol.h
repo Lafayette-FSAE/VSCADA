@@ -30,7 +30,7 @@ public:
     // Member function declarations
     DataControl(gpio_interface *gpio, canbus_interface *can, usb7402_interface * usb,
                 map<string, Group *> subMap, vector<system_state *> stts, vector<statemachine *> FSMs,
-                int mode, vector<controlSpec *> ctrlSpecs, map<int,response> rspMap,
+                int mode, map<int,response> rspMap,
                 map<uint32_t, vector<meta *> *> canMap,vector<canItem> cSyncs, map<int, meta *> sensMap);
     ~DataControl();
 
@@ -40,7 +40,6 @@ public:
     void startSystemTimer();
     string getProgramTime();
     void saveSession(string name);
-    vector<controlSpec *> get_control_specs();
     void init_meta_vector(vector<meta> vctr);
     int change_system_state(system_state * newState);
     uint64_t LSBto64Spec(uint auxAddress, uint offset, uint64_t data);
@@ -63,12 +62,8 @@ public:
     gpio_interface * gpioInterface;
     canbus_interface * canInterface;
     map<int,response> responseMap;
-//    map<int,recordwindow *> recordSensorMap;
-//    map<int,recordwindow *> recordStateMap;
     map<int,string> recordColStrings;
-    vector<controlSpec *> controlSpecs;
     map<string, Group *> subsystemMap;
-//    vector<bootloader> bootConfigs;
     map<uint32_t,vector<meta *> *> canSensorGroup;
     vector<canItem> canSyncs;
     DBTable *dbase;
@@ -92,7 +87,6 @@ public slots:
     void executeRxn(int responseIndex);
     void deactivateLog(system_state * prevstate);
     void receive_can_data(uint32_t addr, uint64_t arr);
-    void receive_control_val(int data, controlSpec * spec);
     void canSyncSlot();
     void feedWatchdog();
 signals:

@@ -45,10 +45,6 @@ public:
     vector<QPushButton *> controlButtons;
     vector<QLineEdit *> controlEdits;
 
-    vector<controlSpec *> sliderCtrls;
-    vector<controlSpec *> buttonCtrls;
-    vector<controlSpec *> editCtrls;
-
     vector<QComboBox *> systemBox;
     map<string,QPushButton *> healthButtons;
     map<string,QPushButton *> detailButtons;
@@ -104,7 +100,7 @@ public:
     Config * conf;
 
 signals:
-    void sendControlValue(int data, controlSpec * spec);
+    //void sendControlValue(int data, controlSpec * spec);
     void openDetailPage(Group * grp);
 
 public slots:
@@ -115,11 +111,11 @@ public slots:
     void deactivateStateMW(system_state * prevstate);
     void activateStateMW(system_state * nextState);
     void updateFSM_MW(statemachine * currFSM);
-    void sliderValChanged();
-    void sliderValChanged(int);
-    void ctrlButtonPressed();
-    void ctrlButtonReleased();
-    void editUpdated();
+//    void sliderValChanged();
+//    void sliderValChanged(int);
+//    void ctrlButtonPressed();
+//    void ctrlButtonReleased();
+//    void editUpdated();
     void shutdownSystem();
     void detailButtonPushed();
     void closeTab(int tabId);

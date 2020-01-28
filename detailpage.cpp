@@ -29,9 +29,11 @@ detailPage::~detailPage()
 {
     delete ui;
 }
-
+/*
+*
+*/
 void detailPage::update(){
-    vector<meta *> allSensors = currentGroup->get_metadata();
+    vector<meta *> allSensors = currentGroup->get_mainsensors();
 
     for(uint i = 0; i < allSensors.size(); i++){
         lineEdit = new QLineEdit;
@@ -57,7 +59,7 @@ void detailPage::update(){
 
     QGridLayout * subsystemSectionLayout = new QGridLayout;
 
-    vector<meta *> subMeta = currentGroup->get_metadata();
+    vector<meta *> subMeta = currentGroup->get_mainsensors();
 
     QLabel * headerLabel = new QLabel;
     headerLabel->setFixedWidth(static_cast<int>(unitWidth*1.5));
@@ -124,18 +126,35 @@ void detailPage::update(){
     hBorder1->setFrameShape(QFrame::HLine);
     hBorder1->setFrameShadow(QFrame::Raised);
     mainLayout->addWidget(hBorder1, Qt::AlignCenter);
+
+    QLineEdit * input=new QLineEdit;
+    input->setStyleSheet("font:"+editFont+"pt;");
+    input->setFixedWidth(static_cast<int>(unitWidth*2.5));
+    input->setFixedHeight(static_cast<int>(unitHeight*0.8));
+    mainLayout->addWidget(input);
+
+    checkbox = new QCheckBox("Characterise", this);
+    checkbox->setTristate(currentGroup->isCharcterised);
+    connect(checkbox, SIGNAL(stateChanged(int)),currentGroup,SLOT(createGroupTable()));
+    mainLayout->addWidget(checkbox);
 }
 
+/*
+*
+*/
 void detailPage::setConfObject(Config * config){
     this->conf = config;
     connect(conf->dataCtrl, SIGNAL(updateDisplay(meta *)), this, SLOT(updateEdits(meta *)));
     connect(conf->dataCtrl, SIGNAL(updateEditColor(string, meta *)), this, SLOT(changeEditColor(string, meta *)));
 }
 
+/*
+*
+*/
 void detailPage::setCurrentSystem(Group * subsystem){
     currentGroup = subsystem;
     update();
-    vector<meta*> allSensors = currentGroup->get_metadata();
+    vector<meta*> allSensors = currentGroup->get_mainsensors();
     for(uint i = 0; i < allSensors.size(); i++){
         allSensors.at(i)->state = 0;
     }
@@ -146,7 +165,7 @@ void detailPage::setCurrentSystem(Group * subsystem){
  * @brief detailPage::updateEdits - updates text edit fields
  */
 void detailPage::updateEdits(meta * currSensor){
-    vector<meta*> allSensors = currentGroup->get_metadata();
+    vector<meta*> allSensors = currentGroup->get_mainsensors();
     for(uint i = 0; i < edits.size(); i++){
         if(allSensors.at(i) == currSensor){
             double num = currSensor->calVal;
@@ -171,8 +190,11 @@ void detailPage::checkTimeout(){
     }
 }
 
+/*
+*
+*/
 void detailPage::changeEditColor(string color, meta * sensor){
-    vector<meta*> allSensors = currentGroup->get_metadata();
+    vector<meta*> allSensors = currentGroup->get_mainsensors();
     for(uint i = 0; i < edits.size(); i++){
         if (allSensors.at(i) == sensor) {
             if(color.compare("red") == 0){

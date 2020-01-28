@@ -39,7 +39,7 @@ public:
     vector<QLineEdit *> edits;
     QLineEdit * lineEdit;
     QTimer * checkTmr;
-
+    QCheckBox *checkbox;
     QVBoxLayout * mainLayout;
     QWidget * central;
 

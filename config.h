@@ -43,7 +43,6 @@ public:
 
     //dummy variables
     meta * storedSensor;
-    controlSpec * currSpec;
     statemachine * thisFSM;
     system_state * thisState;
     //condition * thisCondition;
@@ -63,8 +62,6 @@ public:
     vector<string> configErrors;
     vector<meta *> mainSensors;
     vector<canItem> canSyncs;
-    vector<i2cItem> i2cSyncs;
-    vector<gpioItem> gpioSyncs;
 
     map<int,meta *> canSensorMap;
     map<int,meta *> sensorMap;
@@ -78,7 +75,6 @@ public:
 
     vector<statemachine *> FSMs;
     vector<system_state *> sysStates;
-    vector<controlSpec *> controlSpecs;
 
     //test module
     TrafficTest * trafficTest;
