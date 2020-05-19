@@ -1,0 +1,40 @@
+sudo mkdir /home/whittakd/CCTOOLS
+cd /home/whittakd/CCTOOLS
+unzip 2018-11-13-raspbian-stretch.zip
+git clone https://github.com/raspberrypi/tools.git
+cd tools
+wget https://raw.githubusercontent.com/riscv/riscv-poky/master/scripts/sysroot-relativelinks.py
+chmod +x sysroot-relativelinks.py
+wget http://downloads.raspberrypi.org/raspbian/images/raspbian-2018-11-15/2018-11-13-raspbian-stretch.zip
+sudo mount -o loop,offset=$((512*98304)) /home/whittakd/CCTOOLS/2018-11-13-raspbian-stretch.img  /media/card/
+sudo ./sysroot-relativelinks.py /media/card
+sudo ln -s /media/card/opt/vc/lib/libbrcmEGL.so /media/card/opt/vc/lib/libEGL.so
+sudo ln -s /media/card/opt/vc/lib/libbrcmGLESv2.so /media/card/opt/vc/lib/libGLESv2.so
+cd /home/whittakd/QT/5.9.8/Src/
+./configure -opengl es2 -device linux-rasp-pi-g++ -device-option CROSS_COMPILE=/home/whittakd/CCTOOLS/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-\
+ -sysroot /media/card -opensource -confirm-license -release -make libs -plugin-sql-sqlite -prefix /usr/local/qt5pi -hostprefix /usr/local/qt5pi
+gmake
+sudo gmake install
+cd /home/whittakd/CCTOOLS
+wget http://www.sqlite.org/2017/sqlite-autoconf-3160200.tar.gz
+tar xvzf sqlite-autoconf-3160200.tar.gz
+cd /home/whittakd/CCTOOLS/sqlite-autoconf-3160200/
+./configure --host=arm-linux --prefix=/media/card/opt/vc/lib  CC=/home/whittakd/CCTOOLS/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-gcc
+make
+sudo make install
+sudo mv /media/card/opt/vc/lib/lib/pkgconfig/sqlite3.pc /media/card/opt/vc/lib/pkgconfig
+sudo mv /media/card/opt/vc/lib/lib/libsqlite3.a /media/card/opt/vc/lib/lib/libsqlite3.la /media/card/opt/vc/lib/lib/libsqlite3.so\
+ /media/card/opt/vc/lib/lib/libsqlite3.so.0 /media/card/opt/vc/lib/lib/libsqlite3.so.0.8.6 /media/card/opt/vc/lib/
+sudo mv /media/card/opt/vc/lib/bin/sqlite3 /media/card/opt/vc/bin
+sudo mv /media/card/opt/vc/lib/include/sqlite3.h /media/card/opt/vc/lib/include/sqlite3ext.h /media/card/usr/include
+sudo mv /media/card/opt/vc/lib/share/man/man1/sqlite3.1 /media/card/usr/local/share/man/
+cd /home/whittakd/CCTOOLS
+wget https://sourceforge.net/projects/libusb/files/libusb-1.0/libusb-1.0.21.tar.bz2
+tar xjf libusb-1.0.21.tar.bz2
+cd /home/whittakd/CCTOOLS/libusb-1.0.21/
+./configure --host=arm-linux --prefix=/media/card/opt/vc/lib  CC=/home/whittakd/CCTOOLS/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-gcc -disable-udev
+make
+sudo make install
+sudo mv /media/card/opt/vc/lib/include/libusb-1.0/libusb.h /media/card/usr/include
+sudo mv /media/card/opt/vc/lib/lib/libusb-1.0.a /media/card/opt/vc/lib/lib/libusb-1.0.la /media/card/opt/vc/lib/lib/libusb-1.0.so /media/card/opt/vc/lib/lib/libusb-1.0.so.0 /media/card/opt/vc/lib/lib/libusb-1.0.so.0.1.0 /media/card/opt/vc/lib/
+sudo mv /media/card/opt/vc/lib/lib/pkgconfig/libusb-1.0.pc /media/card/opt/vc/lib/pkgconfig
