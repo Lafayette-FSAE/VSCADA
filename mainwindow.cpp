@@ -165,10 +165,11 @@ void MainWindow::update(){
     label->setStyleSheet("font:"+LabelFont+"pt;");
     groupSectionLayout->addWidget(label,fieldRowCount,fieldColCount);
     fieldRowCount=2;
+    int j=0;
     for (auto const &x: conf->groupMap){
         Group * currGrp = x.second;
         vector<meta *> grpMeta = currGrp->get_mainsensors();
-
+        j+=1;
         QPushButton * headerLabel = new QPushButton;
         headerLabel->setFixedWidth(static_cast<int>(unitWidth*1.5));
         headerLabel->setFixedHeight(static_cast<int>(unitHeight*0.8));
@@ -182,6 +183,10 @@ void MainWindow::update(){
         if (fieldColCount != 0) groupSectionLayout->addWidget(headerLabel,fieldRowCount,fieldColCount-1,1,4);
         else groupSectionLayout->addWidget(headerLabel,fieldRowCount,fieldColCount,1,4);
         fieldColCount=fieldColCount+3;
+        if(j==3){
+             fieldRowCount=fieldRowCount+2;
+        j=0;
+        }
     }
     fieldRowCount=fieldRowCount+2;
     fieldColCount=0;
@@ -193,7 +198,7 @@ void MainWindow::update(){
     label2->setStyleSheet("font:"+LabelFont2+"pt;");
     groupSectionLayout->addWidget(label2,fieldRowCount,fieldColCount);
     fieldRowCount=fieldRowCount+2;
-    int j=0;
+    j=0;
     if(conf->sensorMap.size()>0){
         for (auto const &x: conf->sensorMap){
             j++;
